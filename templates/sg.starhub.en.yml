@@ -1,0 +1,13 @@
+# -*- coding: utf-8 -*-
+issuer: Starhub
+fields:
+  amount: Current Charges\s*[$](\d+[.]\d{2})\s*[(]GST[)]
+  invoice_number: Bill No.\s*(\d+)
+  date: Date of Bill\s*(\d{1,2}[/]\d{1,2}[/]\d{1,2})
+keywords:
+  - StarHub Ltd
+options:
+  currency: SGD
+  date_formats:
+    - '%d/%m/%Y'
+  decimal_separator: '.'
