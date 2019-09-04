@@ -1,6 +1,13 @@
+appdirs==1.4.3
+attrs==19.1.0
+black==19.3b0
 chardet==3.0.4
+Click==7.0
 dateparser==0.7.1
 invoice2data==0.3.5
+numpy==1.17.1
+pandas==0.25.1
+pdf2image==1.7.1
 Pillow==6.1.0
 pytesseract==0.3.0
 python-dateutil==2.8.0
@@ -8,5 +15,6 @@ pytz==2019.2
 PyYAML==5.1.2
 regex==2019.8.19
 six==1.12.0
+toml==0.10.0
 tzlocal==2.0.0
 Unidecode==1.1.1
