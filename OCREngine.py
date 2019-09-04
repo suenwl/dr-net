@@ -48,7 +48,11 @@ class OCREngine:
         return token_list
 
     def OCR(self, image):
+        import time
+
+        start_time = time.time()
         raw_OCR_output = pytesseract.image_to_data(image, output_type="data.frame")
+        print("--- %s seconds ---" % (time.time() - start_time))
         cleaned_OCR_output = self.clean_OCR_output(raw_OCR_output)
         tokens = self.convert_ocr_dataframe_to_token_list(cleaned_OCR_output)
 

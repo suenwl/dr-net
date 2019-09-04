@@ -2,8 +2,7 @@
 from OCREngine import OCREngine
 from Invoice import Invoice
 from Token import Token
-
-# from Classifier import Classifier
+from Classifier import Classifier
 from util import *
 
 # This method manages all the various methods we use to obtain data from invoices
@@ -30,16 +29,19 @@ def obtain_output(invoice):
 if __name__ == "__main__":
     # Load invoices in specific folder
     invoice = Invoice(
-        "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Tech demo/singtel.pdf"
+        "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Tech demo/starhub.pdf"
     )
-    first_page = invoice.pages[0]
-
-    ocr_engine = OCREngine()
-    tokens = ocr_engine.OCR(first_page)
+    page = invoice.get_page(1)
+    page.do_OCR()
+    classifier = Classifier()
+    for token in page.tokens:
+        print(token, classifier.create_features(token, page))
+    # for i, block in page.get_tokens_by_block().items():
+    #     print(block)
+    #     print(" ")
 
     # Iterate through invoices and obtain output
     # for invoice in invoices:
     #     obtain_output(invoice)
 
     # Write to excel/csv file
-
