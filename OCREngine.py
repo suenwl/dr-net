@@ -5,11 +5,13 @@ from invoice2data.extract.loader import read_templates
 import pytesseract
 import pandas as pd
 
+from Token import Token
+
 
 class OCREngine:
     def clean_OCR_output(self, raw_OCR_output):
 
-        UNECESSARY_CHARACTERS = [" ", "(", ")", "&"]
+        UNECESSARY_CHARACTERS = [" ", "(", ")", "&", ";"]
 
         without_null = raw_OCR_output.loc[raw_OCR_output["text"].notnull()]
 

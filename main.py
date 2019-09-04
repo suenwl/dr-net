@@ -1,8 +1,10 @@
 # import methods defined in the other files
-from OCR import *
+from OCREngine import OCREngine
+from Invoice import Invoice
+from Token import Token
+
+# from Classifier import Classifier
 from util import *
-from text_model import *
-from text_processing import *
 
 # This method manages all the various methods we use to obtain data from invoices
 # Our OCR, regex, and text model methods are all called from this method.
@@ -27,11 +29,17 @@ def obtain_output(invoice):
 
 if __name__ == "__main__":
     # Load invoices in specific folder
-    invoices = load_invoices()
+    invoice = Invoice(
+        "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Tech demo/singtel.pdf"
+    )
+    first_page = invoice.pages[0]
+
+    ocr_engine = OCREngine()
+    tokens = ocr_engine.OCR(first_page)
 
     # Iterate through invoices and obtain output
-    for invoice in invoices:
-        obtain_output(invoice)
+    # for invoice in invoices:
+    #     obtain_output(invoice)
 
-        # Write to excel/csv file
+    # Write to excel/csv file
 
