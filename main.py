@@ -22,10 +22,10 @@ def obtain_output(invoice):
 
     # For unrecognised invoices, use a word/topic model to obtain classifications of text within invoice
 
-        # TODO: Build and implement word model
+    # TODO: Build and implement word model
 
 
-if __name__== "__main__":
+if __name__ == "__main__":
     # Load invoices in specific folder
     invoices = load_invoices()
 
