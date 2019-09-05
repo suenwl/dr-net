@@ -7,6 +7,7 @@ A project to extract information from invoices
 ```git clone (copy link from git repo)```
 
 #### Setup virtual environment
+Change directory into project folder before executing the following
 ```
 pip install virtualenv
 virtualenv env
