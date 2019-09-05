@@ -11,7 +11,7 @@ Change directory into project folder before executing the following
 ```
 pip install virtualenv
 virtualenv env
-source .env/bin/activate
+source ./env/bin/activate
 pip install -r requirements.txt
 ```
 
