@@ -23,7 +23,7 @@ class Token:
         return self.text
 
     def __str__(self):
-        return self.text + " " + str(self.coordinates)
+        return self.text
 
     def is_horizontally_aligned_with(self, token):
         token_vertical_midpoint = (

@@ -8,7 +8,7 @@ class FeatureEngine:
         features = {}
 
         ### Datatype-related features ###
-        # TODO: Implement regexes to determine datatype of the token - DATE, MONEY, NUMBER
+        # TODO: Implement regexes to determine datatype of this token - DATE, MONEY, NUMBER
 
         ### Vertical location feature ###
         # TODO: Calculate distance from the top of the image
@@ -36,15 +36,15 @@ class FeatureEngine:
 
     ####### Functions that help create features go here #######
 
-    # Returns a float which represents the min distance from the token to any of the tokens in the to_tokens list
-    def create_min_distance_feature(self, token: Token, to_tokens: List[Token]):
+    # Returns a float which represents the min distance from the token to any of the tokens in the target_tokens list
+    def create_min_distance_feature(self, token: Token, target_tokens: List[Token]):
         min_distance = float("inf")
-        for to_token in to_tokens:
-            distance = token.get_distance_to(to_token)
+        for target_token in target_tokens:
+            distance = token.get_distance_to(target_token)
             if distance < min_distance:
                 min_distance = distance
         return min_distance
 
-    # Returns a boolean according to whether the token aligns to any of the tokens provided in the to_tokens list
-    def create_alignment_feature(self, token: Token, to_tokens: List[Token]):
-        return any(list(map(token.is_aligned_with, to_tokens)))
+    # Returns a boolean according to whether the token aligns to any of the tokens provided in the target_tokens list
+    def create_alignment_feature(self, token: Token, target_tokens: List[Token]):
+        return any(list(map(token.is_aligned_with, target_token)))

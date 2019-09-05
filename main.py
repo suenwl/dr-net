@@ -20,8 +20,9 @@ if __name__ == "__main__":
     # Test 1: create features for each token on the page
     for token in page.tokens:
         print(token, feature_engine.create_features(token, page))
+        print(" ")
 
     # Test 2: Print tokens grouped by blocks
-    # for i, block in page.get_tokens_by_block().items():
-    #     print(block)
-    #     print(" ")
+    for i, block in page.get_tokens_by_block().items():
+        print(block)
+        print(" ")
