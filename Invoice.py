@@ -1,10 +1,11 @@
 from pdf2image import convert_from_path
+from PIL.PpmImagePlugin import PpmImageFile as Image
 from OCREngine import OCREngine
 import re
 
 
 class Invoice:
-    def __init__(self, PDF_path):
+    def __init__(self, PDF_path: str):
         self.pages = [
             InvoicePage(page) for page in convert_from_path(PDF_path, 500)
         ]  # Each of the individual pages in the PDF is converted to images
@@ -23,12 +24,12 @@ class Invoice:
             for (page_number, page) in enumerate(self.pages)
         }
 
-    def get_page(self, page_number):
+    def get_page(self, page_number: int):
         return self.pages[page_number - 1]
 
 
 class InvoicePage:
-    def __init__(self, image):
+    def __init__(self, image: Image):
         self.page = image
         self.tokens = None
         self.tokens_by_block = None
@@ -38,7 +39,7 @@ class InvoicePage:
             ocr_engine = OCREngine()
             self.tokens = ocr_engine.OCR(self.page)
 
-    def get_tokens_by_block(self, block_num=None):
+    def get_tokens_by_block(self, block_num: int = None):
         self.do_OCR()
         if self.tokens_by_block:
             return self.tokens_by_block

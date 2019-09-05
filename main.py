@@ -1,3 +1,4 @@
+#%%
 # import methods defined in the other files
 from OCREngine import OCREngine
 from FeatureEngine import FeatureEngine
@@ -7,6 +8,7 @@ from Classifier import Classifier
 from util import *
 
 if __name__ == "__main__":
+    print("Starting...")
     # Load invoices in specific folder
     invoice = Invoice(
         "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Tech demo/starhub.pdf"

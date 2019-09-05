@@ -4,12 +4,14 @@ from invoice2data.extract.loader import read_templates
 
 import pytesseract
 import pandas as pd
+from pandas import DataFrame
+from PIL.PpmImagePlugin import PpmImageFile as Image
 
 from Token import Token
 
 
 class OCREngine:
-    def clean_OCR_output(self, raw_OCR_output):
+    def clean_OCR_output(self, raw_OCR_output: DataFrame):
 
         UNECESSARY_CHARACTERS = [" ", "(", ")", "&", ";"]
 
@@ -20,7 +22,7 @@ class OCREngine:
         ]  # Not in unecessary characters
         return without_unecessary_characters
 
-    def convert_ocr_dataframe_to_token_list(self, ocr_dataframe):
+    def convert_ocr_dataframe_to_token_list(self, ocr_dataframe: DataFrame):
         token_list = []
 
         for index, row in ocr_dataframe.iterrows():
@@ -47,7 +49,7 @@ class OCREngine:
 
         return token_list
 
-    def OCR(self, image):
+    def OCR(self, image: Image):
         import time
 
         start_time = time.time()
