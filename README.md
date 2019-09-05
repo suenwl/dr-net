@@ -25,3 +25,7 @@ brew install tesseract
 
 #### After adding any packages, update the requirements.txt file before pushing
 ```pip freeze > requirements.txt```
+
+
+#### Notes on VScode
+We are using "black" as the official linter for code
