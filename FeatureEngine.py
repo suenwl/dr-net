@@ -47,4 +47,4 @@ class FeatureEngine:
 
     # Returns a boolean according to whether the token aligns to any of the tokens provided in the target_tokens list
     def create_alignment_feature(self, token: Token, target_tokens: List[Token]):
-        return any(list(map(token.is_aligned_with, target_token)))
+        return any(list(map(token.is_aligned_with, target_tokens)))
