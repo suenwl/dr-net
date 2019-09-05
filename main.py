@@ -1,5 +1,6 @@
 # import methods defined in the other files
 from OCREngine import OCREngine
+from FeatureEngine import FeatureEngine
 from Invoice import Invoice
 from Token import Token
 from Classifier import Classifier
@@ -12,11 +13,11 @@ if __name__ == "__main__":
     )
     page = invoice.get_page(1)
     page.do_OCR()
-    classifier = Classifier()
+    feature_engine = FeatureEngine()
 
     # Test 1: create features for each token on the page
     for token in page.tokens:
-        print(token, classifier.create_features(token, page))
+        print(token, feature_engine.create_features(token, page))
 
     # Test 2: Print tokens grouped by blocks
     # for i, block in page.get_tokens_by_block().items():
