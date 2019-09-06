@@ -1,5 +1,6 @@
 # from pdf2image import convert_from_path
 import fitz
+from PIL import ImageDraw
 from PIL import Image
 from OCREngine import OCREngine
 from util import convert_pdf_to_image
@@ -34,12 +35,13 @@ class InvoicePage:
     def __init__(self, image: Image):
         self.page = image
         self.tokens = None
+        self.blank_areas = None
         self.tokens_by_block = None
 
     def do_OCR(self):
         if not self.tokens:
             ocr_engine = OCREngine()
-            self.tokens = ocr_engine.OCR(self.page)
+            self.tokens, self.blank_areas = ocr_engine.OCR(self.page)
 
     def get_tokens_by_block(self, block_num: int = None):
         self.do_OCR()
@@ -66,6 +68,21 @@ class InvoicePage:
         )
 
         return filtered_tokens
+
+    def draw_bounding_boxes(self, option="all"):
+        page_copy = self.page.copy()
+        canvas = ImageDraw.Draw(page_copy)
+        for blank_area in self.blank_areas:
+            canvas.rectangle(
+                (
+                    blank_area.coordinates["x"],
+                    blank_area.coordinates["y"],
+                    blank_area.coordinates["x"] + blank_area.coordinates["width"],
+                    blank_area.coordinates["y"] + blank_area.coordinates["height"],
+                ),
+                outline=(255, 0, 0),
+            )
+        page_copy.show()
 
 
 ##### TODO: The following code is relevant to text-based invoices and needs to be integrated

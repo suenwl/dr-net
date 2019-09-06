@@ -20,10 +20,10 @@ class Token:
         self.token_structure = token_structure
 
     def __repr__(self):
-        return self.text
+        return self.text if self.text else "[-BLANK-]"
 
     def __str__(self):
-        return self.text
+        return self.text if self.text else "[-BLANK-]"
 
     def is_horizontally_aligned_with(self, token):
         token_vertical_midpoint = (
