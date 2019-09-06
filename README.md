@@ -7,10 +7,11 @@ A project to extract information from invoices
 ```git clone (copy link from git repo)```
 
 #### Setup virtual environment
+Change directory into project folder before executing the following
 ```
 pip install virtualenv
 virtualenv env
-source .env/bin/activate
+source ./env/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -24,3 +25,7 @@ brew install tesseract
 
 #### After adding any packages, update the requirements.txt file before pushing
 ```pip freeze > requirements.txt```
+
+
+#### Notes on VScode
+We are using "black" as the official linter for code
