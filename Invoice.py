@@ -1,13 +1,15 @@
-from pdf2image import convert_from_path
-from PIL.PpmImagePlugin import PpmImageFile as Image
+# from pdf2image import convert_from_path
+import fitz
+from PIL import Image
 from OCREngine import OCREngine
+from util import convert_pdf_to_image
 import re
 
 
 class Invoice:
     def __init__(self, PDF_path: str):
         self.pages = [
-            InvoicePage(page) for page in convert_from_path(PDF_path, 500)
+            InvoicePage(page) for page in convert_pdf_to_image(PDF_path)
         ]  # Each of the individual pages in the PDF is converted to images
 
         self.is_text_based = (

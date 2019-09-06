@@ -5,7 +5,7 @@ from invoice2data.extract.loader import read_templates
 import pytesseract
 import pandas as pd
 from pandas import DataFrame
-from PIL.PpmImagePlugin import PpmImageFile as Image
+from PIL import Image
 
 from Token import Token
 

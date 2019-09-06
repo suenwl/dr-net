@@ -10,9 +10,8 @@ from util import *
 
 print("Starting...")
 # Load invoices in specific folder
-invoice = Invoice(
-    "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Tech demo/starhub.pdf"
-)
+INVOICE_PATH = "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Tech demo/starhub.pdf"
+invoice = Invoice(INVOICE_PATH)
 page = invoice.get_page(1)
 page.do_OCR()
 feature_engine = FeatureEngine()
