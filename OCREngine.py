@@ -49,7 +49,7 @@ class OCREngine:
 
         return token_list
 
-    def get_blank_areas(self, raw_OCR_output: DataFrame):
+    def get_regions(self, raw_OCR_output: DataFrame):
         return raw_OCR_output.loc[raw_OCR_output["text"].isnull()]
 
     def OCR(self, image: Image):
@@ -63,8 +63,8 @@ class OCREngine:
         cleaned_OCR_output = self.clean_OCR_output(raw_OCR_output)
         tokens = self.convert_ocr_dataframe_to_token_list(cleaned_OCR_output)
 
-        blank_areas = self.convert_ocr_dataframe_to_token_list(
-            self.get_blank_areas(raw_OCR_output)
+        regions = self.convert_ocr_dataframe_to_token_list(
+            self.get_regions(raw_OCR_output)
         )
 
-        return tokens, blank_areas
+        return tokens, regions
