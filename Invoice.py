@@ -3,6 +3,7 @@ import fitz
 from PIL import ImageDraw
 from PIL import Image
 from OCREngine import OCREngine
+from Token import Token
 from util import convert_pdf_to_image
 import re
 
@@ -35,13 +36,13 @@ class InvoicePage:
     def __init__(self, image: Image):
         self.page = image
         self.tokens = None
-        self.blank_areas = None
+        self.regions = None
         self.tokens_by_block = None
 
     def do_OCR(self):
         if not self.tokens:
             ocr_engine = OCREngine()
-            self.tokens, self.blank_areas = ocr_engine.OCR(self.page)
+            self.tokens, self.regions = ocr_engine.OCR(self.page)
 
     def get_tokens_by_block(self, block_num: int = None):
         self.do_OCR()
@@ -69,19 +70,55 @@ class InvoicePage:
 
         return filtered_tokens
 
-    def draw_bounding_boxes(self, option="all"):
-        page_copy = self.page.copy()
-        canvas = ImageDraw.Draw(page_copy)
-        for blank_area in self.blank_areas:
+    def draw_bounding_boxes(
+        self, detail="block"
+    ):  # detail can be block, paragraph, line, word
+        def draw_rect(canvas: ImageDraw, token: Token, colour: tuple):
             canvas.rectangle(
                 (
-                    blank_area.coordinates["x"],
-                    blank_area.coordinates["y"],
-                    blank_area.coordinates["x"] + blank_area.coordinates["width"],
-                    blank_area.coordinates["y"] + blank_area.coordinates["height"],
+                    token.coordinates["x"],
+                    token.coordinates["y"],
+                    token.coordinates["x"] + token.coordinates["width"],
+                    token.coordinates["y"] + token.coordinates["height"],
                 ),
-                outline=(255, 0, 0),
+                outline=colour,
             )
+
+        page_copy = self.page.copy()
+        canvas = ImageDraw.Draw(page_copy)
+        if detail == "block":
+            selected_to_draw = list(
+                filter(
+                    lambda region: region.token_structure["par_num"] == 0, self.regions
+                )
+            )
+        elif detail == "paragraph":
+            selected_to_draw = list(
+                filter(
+                    lambda region: region.token_structure["par_num"] != 0
+                    and region.token_structure["line_num"] == 0,
+                    self.regions,
+                )
+            )
+        elif detail == "line":
+            selected_to_draw = list(
+                filter(
+                    lambda region: region.token_structure["par_num"] != 0
+                    and region.token_structure["line_num"] != 0
+                    and region.token_structure["word_num"] == 0,
+                    self.regions,
+                )
+            )
+        elif detail == "word":
+            selected_to_draw = self.tokens
+        else:
+            raise Exception(
+                "Invalid option for detail selected. Can only be 'block', 'paragraph', 'line', or 'word'"
+            )
+
+        for token in selected_to_draw:
+            draw_rect(canvas, token, (255, 0, 0))
+
         page_copy.show()
 
 
