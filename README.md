@@ -21,6 +21,11 @@ tesseract is required for pytesseract
 brew install tesseract
 ```
 
+#### Download nltk data
+```
+python -m nltk.downloader all
+```
+
 #### After adding any packages, update the requirements.txt file before pushing
 ```pip freeze > requirements.txt```
 
