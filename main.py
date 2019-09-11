@@ -8,17 +8,19 @@ from Classifier import Classifier
 from util import *
 import json
 
+
 print("Starting...")
 # Load invoices in specific folder
 #INVOICE_PATH = "/Users/candicetay/Documents/Academic/NUS/Year 4/BT3101 Capstone NatWest/PDF Invoices/Singtel Aug.pdf"
 #INVOICE_PATH = "/Users/candicetay/Documents/Academic/NUS/Year 4/BT3101 Capstone NatWest/PDF Invoices/Pest Control Service Contract.pdf"
 #INVOICE_PATH = "/Users/candicetay/Documents/Academic/NUS/Year 4/BT3101 Capstone NatWest/PDF Invoices/Dive Receipt.pdf"
 #INVOICE_PATH = "/Users/candicetay/Documents/Academic/NUS/Year 4/BT3101 Capstone NatWest/PDF Invoices/Circles April 18.pdf"
-INVOICE_PATH = "/Users/candicetay/Documents/Academic/NUS/Year 4/BT3101 Capstone NatWest/PDF Invoices/Starhub July 19.pdf"
+INVOICE_PATH = "/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices/Hyatt Invoice.pdf"
 invoice = Invoice(INVOICE_PATH)
 page = invoice.get_page(1)
 page.do_OCR()
 feature_engine = FeatureEngine()
+page.remove_stopwords()
 
 #%% Demo 1: create features for each token on the page
 for token in page.tokens:

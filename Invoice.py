@@ -6,6 +6,10 @@ from OCREngine import OCREngine
 from Token import Token
 from util import convert_pdf_to_image
 import re
+import nltk
+
+nltk.download("stopwords")
+from nltk.corpus import stopwords
 
 
 class Invoice:
@@ -38,6 +42,7 @@ class InvoicePage:
         self.tokens = None
         self.regions = None
         self.tokens_by_block = None
+        self.tokens_no_stopwords = None
 
     def do_OCR(self):
         if not self.tokens:
@@ -69,6 +74,13 @@ class InvoicePage:
         )
 
         return filtered_tokens
+
+    def remove_stopwords(self):
+        if self.tokens:
+            stopwords_set = set(stopwords.words("english"))
+            self.tokens_no_stopwords = list(
+                filter(lambda t: t.text not in stopwords_set, self.tokens)
+            )
 
     def draw_bounding_boxes(
         self, detail="block"
