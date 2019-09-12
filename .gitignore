@@ -6,3 +6,4 @@ nltk_data
 remove_lines.py
 linebyline.txt
 final_result.jpg
+*.txt
