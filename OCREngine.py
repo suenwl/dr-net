@@ -60,7 +60,7 @@ class OCREngine:
         # Note for pytesseract output:
         # level 1: page; level 2: block; level 3: paragraph; level 4: line; level 5: word
         #raw_OCR_output = pytesseract.image_to_data(image, output_type="data.frame")
-        raw_OCR_output = pytesseract.image_to_data(image, output_type="data.frame", config='pitsync_linear_version==6')
+        raw_OCR_output = pytesseract.image_to_data(image, output_type="data.frame", config='pitsync_linear_version==6, textord_noise_rejwords==0， textord_noise_rejrows==0')
         print("--- %s seconds ---" % (time.time() - start_time))
         cleaned_OCR_output = self.clean_OCR_output(raw_OCR_output)
         tokens = self.convert_ocr_dataframe_to_token_list(cleaned_OCR_output)
