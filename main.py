@@ -16,11 +16,12 @@ print("Starting...")
 #INVOICE_PATH = "/Users/candicetay/Documents/Academic/NUS/Year 4/BT3101 Capstone NatWest/PDF Invoices/Dive Receipt.pdf"
 #INVOICE_PATH = "/Users/candicetay/Documents/Academic/NUS/Year 4/BT3101 Capstone NatWest/PDF Invoices/Circles April 18.pdf"
 #INVOICE_PATH = "/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices/Hyatt Invoice.pdf"
-#INVOICE_PATH = "/Users/ng-ka/OneDrive/Desktop/BT3101/Starhub July 19.pdf"
+INVOICE_PATH = "/Users/ng-ka/OneDrive/Desktop/BT3101/Starhub July 19.pdf"
 #INVOICE_PATH = "/Users/ng-ka/OneDrive/Desktop/BT3101/Utilities July.pdf"
-INVOICE_PATH = "/Users/ng-ka/OneDrive/Desktop/BT3101/Invoice_BBS.pdf"
+#INVOICE_PATH = "/Users/ng-ka/OneDrive/Desktop/BT3101/Invoice_BBS.pdf"
 invoice = Invoice(INVOICE_PATH)
 page = invoice.get_page(1)
+page.remove_lines()
 page.do_OCR()
 feature_engine = FeatureEngine()
 page.remove_stopwords()
