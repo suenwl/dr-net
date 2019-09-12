@@ -5,6 +5,7 @@ import pandas as pd
 from OCREngine import OCREngine
 import numpy as np
 import cv2
+import os
 
 #%%
 def remove_lines(input):
@@ -71,18 +72,19 @@ def remove_lines(input):
 
     # Dilation and Erosion to remove noise
     kernel = np.ones((1, 1), np.uint8)
-    dilatedImage = cv2.dilate(masked_img_inv2, kernel, iterations=1)
-    dilatedImage = cv2.erode(dilatedImage, kernel, iterations=1)
+    dilatedImage = cv2.dilate(masked_img_inv2, kernel, iterations=10)
+    dilatedImage = cv2.erode(dilatedImage, kernel, iterations=10)
 
     # Median Blur
-    cv2.threshold(cv2.medianBlur(dilatedImage, 3), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+    #dilatedImage = cv2.adaptiveThreshold(cv2.medianBlur(dilatedImage, 3), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
 
     #show final result
     #cv2.imshow("masked img2", masked_img_inv2)
     cv2.imwrite("final_result.jpg", dilatedImage)
+    #cv2.imwrite("final_result.jpg", masked_img_inv2)
     #cv2.waitKey(0)
     #cv2.destroyAllWindows()
-    return(masked_img_inv2)
+    return(dilatedImage)
 
 
 
@@ -93,7 +95,7 @@ INVOICE_PATH = "/Users/lxg/Documents/Semester Modules/BT3101 Capstone Project/PD
 imageInvoice = Image.open(INVOICE_PATH)
 invoice = remove_lines(imageInvoice)
 vanil_OCR_output = pytesseract.image_to_string(invoice)
-raw_OCR_output = pytesseract.image_to_string(invoice, config="oem==1")
+raw_OCR_output = pytesseract.image_to_string(invoice, config="oem==1, textord_heavy_nr==1, textord_min_linesize==0.25, psm==6")
 print(vanil_OCR_output)
 print(raw_OCR_output)
 
