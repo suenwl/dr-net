@@ -14,7 +14,7 @@ def remove_lines(input):
     img = open_cv_image[:, :, ::-1].copy()
     # Convert to grey for easier processing
     img=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-    #inverse colour og image for easier processing of lines
+    #inverse colour on image for easier processing of lines
     img = cv2.bitwise_not(img)
     th2 = cv2.adaptiveThreshold(img,255, cv2.ADAPTIVE_THRESH_MEAN_C,cv2.THRESH_BINARY,15,-2)
     #show blackwhite version
@@ -68,9 +68,18 @@ def remove_lines(input):
     masked_img2 = cv2.bitwise_and(masked_img_inv, masked_img_inv, mask=vertical_inv)
     #reverse the image back to normal
     masked_img_inv2 = cv2.bitwise_not(masked_img2)
+
+    # Dilation and Erosion to remove noise
+    kernel = np.ones((1, 1), np.uint8)
+    dilatedImage = cv2.dilate(masked_img_inv2, kernel, iterations=1)
+    dilatedImage = cv2.erode(dilatedImage, kernel, iterations=1)
+
+    # Median Blur
+    cv2.threshold(cv2.medianBlur(dilatedImage, 3), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+
     #show final result
     #cv2.imshow("masked img2", masked_img_inv2)
-    cv2.imwrite("final_result.jpg", masked_img_inv2)
+    cv2.imwrite("final_result.jpg", dilatedImage)
     #cv2.waitKey(0)
     #cv2.destroyAllWindows()
     return(masked_img_inv2)
@@ -84,7 +93,7 @@ INVOICE_PATH = "/Users/lxg/Documents/Semester Modules/BT3101 Capstone Project/PD
 imageInvoice = Image.open(INVOICE_PATH)
 invoice = remove_lines(imageInvoice)
 vanil_OCR_output = pytesseract.image_to_string(invoice)
-raw_OCR_output = pytesseract.image_to_string(invoice, config='pitsync_linear_version==6, textord_noise_rejwords==0， textord_noise_rejrows==0')
+raw_OCR_output = pytesseract.image_to_string(invoice, config="oem==1")
 print(vanil_OCR_output)
 print(raw_OCR_output)
 
