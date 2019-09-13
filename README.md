@@ -29,6 +29,10 @@ python -m nltk.downloader all
 #### After adding any packages, update the requirements.txt file before pushing
 ```pip freeze > requirements.txt```
 
+### To run on Mac:
+Open terminal, run: source env/bin/activate
+Then run: pip install -r requirements.txt
+Run python main.py
 
 #### Notes on VScode
 We are using "black" as the official linter for code
