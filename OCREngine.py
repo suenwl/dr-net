@@ -82,17 +82,85 @@ class OCREngine:
     def group_tokens(self, blocks_and_lines):
         """ Group tokens together based on their proximity to other tokens, creating a more meaningful token list """
 
+        def horizontal_distance_between(token1, token2):
+            if token1.coordinates["x"] > token2.coordinates["x"]:
+                return (
+                    token1.coordinates["x"]
+                    - token2.coordinates["x"]
+                    - token2.coordinates["width"]
+                )
+            else:
+                return (
+                    token2.coordinates["x"]
+                    - token1.coordinates["x"]
+                    - token1.coordinates["width"]
+                )
+
+        def combine_tokens_into_one_token(token_list):
+            x = y = float("inf")
+            bottom_right_x = bottom_right_y = 0
+            text = ""
+
+            for token in token_list:
+                if not text:
+                    text = token.text
+                else:
+                    text = text + " " + token.text
+
+                x = min(token.coordinates["x"], x)
+                y = min(token.coordinates["y"], y)
+                bottom_right_x = max(
+                    token.coordinates["x"] + token.coordinates["width"], bottom_right_x
+                )
+                bottom_right_y = max(
+                    token.coordinates["y"] + token.coordinates["height"], bottom_right_y
+                )
+
+            return Token(
+                text,
+                {
+                    "x": x,
+                    "y": y,
+                    "width": bottom_right_x - x,
+                    "height": bottom_right_y - y,
+                },
+                "NA",
+                {**token.token_structure, "word_num": "Grouped"},
+            )
+
         grouped_tokens = []
 
         for block in blocks_and_lines:
             for line in blocks_and_lines[block]:
                 current_line = blocks_and_lines[block][line]
                 current_group = []
-                
-                for token in current_line:
-                    
+                ADJUSTMENT_FACTOR = 5
 
-        return
+                for token in current_line:
+                    if current_group:
+                        TOO_FAR = (
+                            horizontal_distance_between(token, current_group[-1])
+                            > token.coordinates["height"] / 2 + ADJUSTMENT_FACTOR
+                        )
+
+                        LAST_TOKEN_ENDS_WITH_COLON = current_group[-1].text[-1] == ":"
+
+                    if not current_group:
+                        current_group.append(token)
+                    elif (
+                        TOO_FAR or LAST_TOKEN_ENDS_WITH_COLON
+                    ):  # This token is too far to combine into the current group
+                        grouped_tokens.append(
+                            combine_tokens_into_one_token(current_group)
+                        )
+                        current_group = [token]  # Reset the current group
+                    else:  # This token is close enough to add to the current group
+                        current_group.append(token)
+
+                if current_group:
+                    grouped_tokens.append(combine_tokens_into_one_token(current_group))
+
+        return grouped_tokens
 
     def remove_stopwords(self, tokens):
         stopwords_set = set(stopwords.words("english"))
@@ -117,16 +185,11 @@ class OCREngine:
         tokens = self.convert_ocr_dataframe_to_token_list(cleaned_OCR_output)
         tokens_by_blocks_and_lines = self.get_tokens_by_block_and_lines(tokens)
 
-        grouped_tokens = self.group_tokens(tokens)
+        grouped_tokens = self.group_tokens(tokens_by_blocks_and_lines)
         tokens_without_stopwords = self.remove_stopwords(tokens)
 
         regions = self.convert_ocr_dataframe_to_token_list(
             self.get_regions(raw_OCR_output)
         )
 
-        return (
-            tokens_without_stopwords,
-            grouped_tokens,
-            tokens_by_blocks_and_lines,
-            regions,
-        )
+        return (tokens, grouped_tokens, tokens_by_blocks_and_lines, regions)

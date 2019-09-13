@@ -99,9 +99,12 @@ class InvoicePage:
             )
         elif detail == "word":
             selected_to_draw = self.tokens
+
+        elif detail == "group":
+            selected_to_draw = self.grouped_tokens
         else:
             raise Exception(
-                "Invalid option for detail selected. Can only be 'block', 'paragraph', 'line', or 'word'"
+                "Invalid option for detail selected. Can only be 'block', 'paragraph', 'group', 'line', or 'word'"
             )
 
         for token in selected_to_draw:
