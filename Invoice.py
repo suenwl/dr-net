@@ -5,6 +5,7 @@ from PIL import Image
 from OCREngine import OCREngine
 from Token import Token
 from util import convert_pdf_to_image
+import json
 import re
 
 
@@ -121,6 +122,11 @@ class InvoicePage:
 
         page_copy.show()
 
+    #%% Demo 4: Save output by extracting text from token objects for NLP experimentation
+    def write_output_json(self,fileName):
+        newdict = {k: list(map(lambda x: x.text, v)) for k, v in self.tokens_by_block.items()}
+        with open(fileName, 'w') as f:
+            json.dump(newdict, f, ensure_ascii=False)
 
 ##### TODO: The following code is relevant to text-based invoices and needs to be integrated
 ##### into the invoice class in the future
