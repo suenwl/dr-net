@@ -144,12 +144,17 @@ class OCREngine:
                         )
 
                         LAST_TOKEN_ENDS_WITH_COLON = current_group[-1].text[-1] == ":"
+                        ALIGNED_HORIZONTALLY = token.is_horizontally_aligned_with(
+                            current_group[-1]
+                        )
 
                     if not current_group:
                         current_group.append(token)
                     elif (
-                        TOO_FAR or LAST_TOKEN_ENDS_WITH_COLON
-                    ):  # This token is too far to combine into the current group
+                        TOO_FAR
+                        or LAST_TOKEN_ENDS_WITH_COLON
+                        or not ALIGNED_HORIZONTALLY
+                    ):  # This token should not be combined into the current group
                         grouped_tokens.append(
                             combine_tokens_into_one_token(current_group)
                         )
