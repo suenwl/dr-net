@@ -8,7 +8,6 @@ from Classifier import Classifier
 from util import *
 
 
-
 print("Starting...")
 # Load invoices in specific folder
 INVOICE_PATH = "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Tech demo/Singtel.pdf"
@@ -40,20 +39,6 @@ for i, block in page.get_tokens_by_block().items():
 
 #%% Demo 3: Print page
 page.page.resize((600, 900))
-page.draw_bounding_boxes('word')
-
-#%% Demmo 4: Print token output
-page.write_output_json('linebyline.json')
-
-
-def writeOutputJson(fileName, dictData):
-    newdict = {
-        k: list(map(extractTextAttributeFromListTokens, v)) for k, v in dictData.items()
-    }
-    with open(fileName, "w") as f:
-        json.dump(newdict, f, ensure_ascii=False)
-
-
-writeOutputJson("linebyline.txt", page.get_tokens_by_block())
+page.draw_bounding_boxes("word")
 #%%
 #%%
