@@ -40,32 +40,16 @@ class InvoicePage:
     def __init__(self, image: Image):
         self.page = image
         self.tokens = None
+        self.grouped_tokens = None
         self.regions = None
-        self.tokens_by_block = None
-        self.tokens_no_stopwords = None
+        self.tokens_by_block_and_line = None
 
     def do_OCR(self):
         if not self.tokens:
             ocr_engine = OCREngine()
-            self.tokens, self.regions = ocr_engine.OCR(self.page)
-
-    def get_tokens_by_block(self, block_num: int = None):
-        self.do_OCR()
-        if self.tokens_by_block:
-            return self.tokens_by_block
-
-        blocks = {}
-
-        for token in self.tokens:
-            block_num = token.token_structure["block_num"]
-            if block_num in blocks:
-                blocks[block_num].append(token)
-            else:
-                blocks[block_num] = [token]
-
-        self.tokens_by_block = blocks
-
-        return blocks
+            self.tokens, self.grouped_tokens, self.tokens_by_block_and_line, self.regions = ocr_engine.OCR(
+                self.page
+            )
 
     def search_tokens(self, text: str):
         self.do_OCR()
@@ -116,9 +100,12 @@ class InvoicePage:
             )
         elif detail == "word":
             selected_to_draw = self.tokens
+
+        elif detail == "group":
+            selected_to_draw = self.grouped_tokens
         else:
             raise Exception(
-                "Invalid option for detail selected. Can only be 'block', 'paragraph', 'line', or 'word'"
+                "Invalid option for detail selected. Can only be 'block', 'paragraph', 'group', 'line', or 'word'"
             )
 
         for token in selected_to_draw:
