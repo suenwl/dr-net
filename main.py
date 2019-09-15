@@ -6,7 +6,6 @@ from Invoice import Invoice
 from Token import Token
 from Classifier import Classifier
 from util import *
-import json
 
 
 print("Starting...")
@@ -18,9 +17,9 @@ print("Starting...")
 INVOICE_PATH = "/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices/Circles April 18.pdf"
 invoice = Invoice(INVOICE_PATH)
 page = invoice.get_page(1)
+# page.remove_lines()
 page.do_OCR()
 feature_engine = FeatureEngine()
-page.get_company_name()
 
 #%% Demo 1: create features for each token on the page
 for token in page.tokens:
@@ -34,15 +33,6 @@ for i, block in page.get_tokens_by_block().items():
 
 #%% Demo 3: Print page
 page.page.resize((600, 900))
-
-#%% Demo 4: Save output by extracting text from token objects for NLP experimentation
-def extractTextAttributeFromListTokens(tokenList):
-    return tokenList.text
-
-def writeOutputJson(fileName, dictData):
-    newdict = {k: list(map(extractTextAttributeFromListTokens, v)) for k, v in dictData.items()}
-    with open(fileName, 'w') as f:
-        json.dump(newdict, f, ensure_ascii=False)
-
-writeOutputJson('linebyline.txt', page.get_tokens_by_block())
+page.draw_bounding_boxes("word")
+#%%
 #%%
