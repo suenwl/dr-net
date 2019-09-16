@@ -14,13 +14,14 @@ print("Starting...")
 #INVOICE_PATH = "/Users/candicetay/Documents/Academic/NUS/Year 4/BT3101 Capstone NatWest/PDF Invoices/Pest Control Service Contract.pdf"
 #INVOICE_PATH = "/Users/candicetay/Documents/Academic/NUS/Year 4/BT3101 Capstone NatWest/PDF Invoices/Dive Receipt.pdf"
 #INVOICE_PATH = "/Users/candicetay/Documents/Academic/NUS/Year 4/BT3101 Capstone NatWest/PDF Invoices/Circles April 18.pdf"
-INVOICE_PATH = "/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices/Circles April 18.pdf"
+INVOICE_PATH = "/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices/Tour Invoice.pdf"
 invoice = Invoice(INVOICE_PATH)
 page = invoice.get_page(1)
 # page.remove_lines()
 page.do_OCR()
+#page.draw_bounding_boxes('group')
 feature_engine = FeatureEngine()
-
+'''
 #%% Demo 1: create features for each token on the page
 for token in page.tokens:
     print(token, feature_engine.create_features(token, page))
@@ -30,9 +31,10 @@ for token in page.tokens:
 for i, block in page.get_tokens_by_block().items():
     print(block)
     print(" ")
-
+'''
 #%% Demo 3: Print page
-page.page.resize((600, 900))
-page.draw_bounding_boxes("word")
+#page.page.resize((600, 900))
+#page.draw_bounding_boxes("word")
+print(list(map(lambda x :x.date_values,page.grouped_tokens)))
 #%%
 #%%
