@@ -7,7 +7,7 @@ A project to extract information from invoices
 ```git clone (copy link from git repo)```
 
 #### Setup virtual environment
-Change directory into project folder before executing the following ```cd dr-net```
+Change directory into project folder ```cd dr-net``` before executing the following 
 ```
 pip install virtualenv
 virtualenv env
@@ -25,7 +25,7 @@ brew install tesseract
 ###### Additional notes for Windows users
 If this doesn't work.  Instead, one can try downloading tesseract directly from https://pypi.org/project/pytesseract/#files. If there are still issues, it is likely because tesseract isn’t in your PATH. One way to resolve this is to change the “tesseract_cmd” variable. This can be done in the OCREngine file, where there is a commented out line with "pytesseract.pytesseract.tesseract_cmd =". Simply change this to wherever Tesseract OCR is installed on your system.
 
----
+## Running the code
 
 #### Download nltk data
 ```
