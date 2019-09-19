@@ -32,14 +32,14 @@ python -m nltk.downloader all
 ```pip freeze > requirements.txt```
 
 ### To run on Mac:
-Open terminal, run: source env/bin/activate
-Then run: pip install -r requirements.txt
-Run python main.py
+- Open terminal, run: ```source env/bin/activate```
+- Then run: ```pip install -r requirements.txt```
+- Run ```python main.py```
 
 ### To run on Windows:
-Open command prompt, run: source env/bin/activate (if this doesn't work refer to instructions above)
-Then run: pip install -r requirements.txt
-Run python main.py
+- Open command prompt, run: ```source env/bin/activate``` (if this doesn't work refer to instructions above)
+- Then run: ```pip install -r requirements.txt```
+- Run ```python main.py```
 
 #### Notes on VScode
 We are using "black" as the official linter for code
