@@ -138,9 +138,17 @@ class OCREngine:
 
                 for token in current_line:
                     if current_group:
+                        height_of_current_group = max(
+                            list(
+                                map(
+                                    lambda token: token.coordinates["height"],
+                                    current_group,
+                                )
+                            )
+                        )
                         TOO_FAR = (
                             horizontal_distance_between(token, current_group[-1])
-                            > token.coordinates["height"] / 2 + ADJUSTMENT_FACTOR
+                            > height_of_current_group / 2 + ADJUSTMENT_FACTOR
                         )
 
                         LAST_TOKEN_ENDS_WITH_COLON = current_group[-1].text[-1] == ":"
