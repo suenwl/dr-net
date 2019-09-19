@@ -134,7 +134,7 @@ class OCREngine:
             for line in blocks_and_lines[block]:
                 current_line = blocks_and_lines[block][line]
                 current_group = []
-                ADJUSTMENT_FACTOR = 5
+                ADJUSTMENT_FACTOR = 10
 
                 for token in current_line:
                     if current_group:
