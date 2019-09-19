@@ -117,9 +117,16 @@ class InvoicePage:
         )
 
     def draw_bounding_boxes(
-        self, detail="block"
-    ):  # detail can be block, paragraph, line, word
+        self, detail="group", tags=True
+    ):  # detail can be group, block, paragraph, line, word
         def draw_rect(canvas: ImageDraw, token: Token, colour: tuple, width: int = 1):
+            if tags:  # Display OCR text on top of bounding box
+                canvas.text(
+                    (token.coordinates["x"], token.coordinates["y"] - 10),
+                    token.text,
+                    fill=(0, 0, 0),
+                )
+
             canvas.rectangle(
                 (
                     token.coordinates["x"],
