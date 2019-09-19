@@ -30,6 +30,12 @@ class Invoice:
             for (page_number, page) in enumerate(self.pages)
         }
 
+    def do_OCR(self, range: tuple = None, verbose=False):
+        if not range:
+            range = (0, self.length() - 1)
+        for page in self.pages[range[0] : range[1]]:
+            page.do_OCR(verbose=verbose)
+
     def get_page(self, page_number: int):
         return self.pages[page_number - 1]
 
@@ -100,14 +106,14 @@ class InvoicePage:
         return filtered_tokens
 
     def find_overlapping_token(self, coordinates):
-        THRESHOLD = 0.5
+        OVERLAP_THRESHOLD = 0.3
         max_overlap = 0
         for token in self.grouped_tokens:
             percentage_overlap = token.get_percentage_overlap(
                 coordinates, self.page.size
             )
             max_overlap = max(max_overlap, percentage_overlap)
-            if percentage_overlap >= THRESHOLD:
+            if percentage_overlap > 0:  # Temporarily setting this to any overlap
                 return token
         raise Exception(
             "No significant overlap between token and label at",
