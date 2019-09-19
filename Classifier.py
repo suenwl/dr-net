@@ -1,7 +1,9 @@
-from Invoice import InvoicePage
+from Invoice import InvoicePage, Invoice
 from Token import Token
 from sklearn import svm
 import pickle
+import os
+import json
 
 
 class Classifier:
@@ -12,6 +14,23 @@ class Classifier:
             "Naive Bayes": None,
             "Random Forest": None,
         }
+
+    def create_training_data(self, training_data_path: str):
+        for filename in os.listdir(training_data_path):
+            if filename.endswith(".pdf"):
+                invoice = Invoice(training_data_path + "/" + filename)
+
+                try:
+                    json_tags = json.load(
+                        open(training_data_path + "/" + filename[:-4] + ".json", "r")
+                    )
+
+                except IOError:
+                    print(
+                        "Warning: json tags for",
+                        filename,
+                        "does not exist. Check if they are in the same folder. Skipping this pdf",
+                    )
 
     def save_model(self, model: str, file_name: str):
         with open(file_name, "w") as text_file:

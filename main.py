@@ -26,6 +26,7 @@ page = invoice.get_page(1)
 # page.remove_lines()
 page.do_OCR()
 feature_engine = FeatureEngine()
+classifier = Classifier()
 
 #%% Demo 1: create features for each token on the page
 for token in page.tokens:
