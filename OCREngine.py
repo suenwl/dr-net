@@ -20,7 +20,7 @@ class OCREngine:
     def clean_OCR_output(self, raw_OCR_output: DataFrame):
         """ Cleans the OCR output by removing uncessary characters """
 
-        UNECESSARY_CHARACTERS = [" ", "(", ")", "&", ";"]
+        UNECESSARY_CHARACTERS = [" ", "(", ")", "&", ";", "|"]
 
         without_null = raw_OCR_output.loc[raw_OCR_output["text"].notnull()]
 
