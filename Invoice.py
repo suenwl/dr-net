@@ -14,6 +14,7 @@ import numpy as np
 
 class Invoice:
     def __init__(self, PDF_path: str):
+        self.readable_name = PDF_path.split("/")[-1]
         self.original_file_path = PDF_path
         self.pages = [
             InvoicePage(page) for page in convert_pdf_to_image(PDF_path)
@@ -32,11 +33,13 @@ class Invoice:
     def get_page(self, page_number: int):
         return self.pages[page_number - 1]
 
-    def map_labels(self, json_file_path=""):
+    def map_labels(self, json_file_path="", verbose=False):
         """Maps json labels, created from the pdf labeller, to the existing grouped tokens in the invoice"""
         if not json_file_path:
             json_file_path = self.original_file_path[:-4] + ".json"
         try:
+            if verbose:
+                print("Loading labels from", json_file_path)
             categories = json.load(open(json_file_path, "r"))
         except IOError:
             print(
@@ -45,7 +48,7 @@ class Invoice:
                 "does not exist. Check if the path provided was correct. Skipping this pdf",
             )
 
-        # Process all the tags
+        # Process all the labels
         for category in categories:
             category_label = category["category"]
 
@@ -56,9 +59,13 @@ class Invoice:
                 page_number = label["page"]
                 page = self.get_page(page_number)
                 token_to_label = page.find_overlapping_token(coordinates)
-                print(
-                    "FOUND TOKEN", token_to_label, "Setting category as", category_label
-                )
+                if verbose:
+                    print(
+                        "FOUND TOKEN",
+                        token_to_label,
+                        "Setting category as",
+                        category_label,
+                    )
                 token_to_label.set_category(category_label)
 
 
@@ -70,11 +77,11 @@ class InvoicePage:
         self.regions = None
         self.tokens_by_block_and_line = None
 
-    def do_OCR(self):
+    def do_OCR(self, verbose=False):
         if not self.tokens:
             ocr_engine = OCREngine()
             self.tokens, self.grouped_tokens, self.tokens_by_block_and_line, self.regions = ocr_engine.OCR(
-                self.page
+                self.page, verbose=verbose
             )
 
     def search_tokens(self, text: str, token_list="group"):

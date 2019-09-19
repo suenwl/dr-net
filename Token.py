@@ -27,7 +27,6 @@ class Token:
         return self.text if self.text else str(self.token_structure)
 
     def set_category(self, category: str):
-        print("setting category of", self.text, "to", category)
         self.category = category
 
     def is_horizontally_aligned_with(self, token):
