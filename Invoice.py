@@ -14,13 +14,10 @@ import numpy as np
 
 class Invoice:
     def __init__(self, PDF_path: str):
+        self.original_file_path = PDF_path
         self.pages = [
             InvoicePage(page) for page in convert_pdf_to_image(PDF_path)
         ]  # Each of the individual pages in the PDF is converted to images
-
-        self.is_text_based = (
-            False
-        )  # TODO: Need to implement way to check if PDF is text based
 
     def length(self):
         return len(self.pages)
@@ -34,6 +31,35 @@ class Invoice:
 
     def get_page(self, page_number: int):
         return self.pages[page_number - 1]
+
+    def map_labels(self, json_file_path=""):
+        """Maps json labels, created from the pdf labeller, to the existing grouped tokens in the invoice"""
+        if not json_file_path:
+            json_file_path = self.original_file_path[:-4] + ".json"
+        try:
+            categories = json.load(open(json_file_path, "r"))
+        except IOError:
+            print(
+                "WARNING: json tags for the PDF at",
+                self.original_file_path,
+                "does not exist. Check if the path provided was correct. Skipping this pdf",
+            )
+
+        # Process all the tags
+        for category in categories:
+            category_label = category["category"]
+
+            for label in category["items"]:
+                coordinates = {
+                    k: v for k, v in label.items() if k in ["x", "y", "width", "height"]
+                }
+                page_number = label["page"]
+                page = self.get_page(page_number)
+                token_to_label = page.find_overlapping_token(coordinates)
+                print(
+                    "FOUND TOKEN", token_to_label, "Setting category as", category_label
+                )
+                token_to_label.set_category(category_label)
 
 
 class InvoicePage:
@@ -51,18 +77,42 @@ class InvoicePage:
                 self.page
             )
 
-    def search_tokens(self, text: str):
+    def search_tokens(self, text: str, token_list="group"):
         self.do_OCR()
+        if token_list == "group":
+            token_list_to_search = self.grouped_tokens
+        elif token_list == "word":
+            token_list_to_search = self.tokens
         filtered_tokens = list(
-            filter(lambda token: bool(re.search(text, token.text.lower())), self.tokens)
+            filter(
+                lambda token: bool(re.search(text, token.text.lower())),
+                token_list_to_search,
+            )
         )
 
         return filtered_tokens
 
+    def find_overlapping_token(self, coordinates):
+        THRESHOLD = 0.5
+        max_overlap = 0
+        for token in self.grouped_tokens:
+            percentage_overlap = token.get_percentage_overlap(
+                coordinates, self.page.size
+            )
+            max_overlap = max(max_overlap, percentage_overlap)
+            if percentage_overlap >= THRESHOLD:
+                return token
+        raise Exception(
+            "No significant overlap between token and label at",
+            coordinates,
+            "was found. Maximum overlap was",
+            max_overlap,
+        )
+
     def draw_bounding_boxes(
         self, detail="block"
     ):  # detail can be block, paragraph, line, word
-        def draw_rect(canvas: ImageDraw, token: Token, colour: tuple):
+        def draw_rect(canvas: ImageDraw, token: Token, colour: tuple, width: int = 1):
             canvas.rectangle(
                 (
                     token.coordinates["x"],
@@ -71,6 +121,7 @@ class InvoicePage:
                     token.coordinates["y"] + token.coordinates["height"],
                 ),
                 outline=colour,
+                width=width,
             )
 
         page_copy = self.page.copy()
@@ -109,16 +160,27 @@ class InvoicePage:
             )
 
         for token in selected_to_draw:
-            draw_rect(canvas, token, (255, 0, 0))
+            if token.category:  # Emphasise if this token has been labelled
+                draw_rect(canvas, token, (255, 0, 0), 3)
+            else:
+                draw_rect(canvas, token, (0, 255, 0))
 
         page_copy.show()
 
-    #%% Demo 4: Save output by extracting text from token objects for NLP experimentation
-    def write_output_json(self,fileName):
-        newdict = {k: list(map(lambda x: x.text, v)) for k, v in self.tokens_by_block.items()}
-        with open(fileName, 'w') as f:
+    # Serialiser
+    def serialise(self):
+        return {
+            k: v for k, v in self.__dict__.items() if k != "page"
+        }  # Do not include the page, since it is an image
+
+    # Save output by extracting text from token objects for NLP experimentation
+    def write_output_json(self, fileName):
+        newdict = {
+            k: list(map(lambda x: x.text, v)) for k, v in self.tokens_by_block.items()
+        }
+        with open(fileName, "w") as f:
             json.dump(newdict, f, ensure_ascii=False)
-            
+
     def remove_lines(self):
         pil_image = self.page.convert("RGB")
         open_cv_image = np.array(pil_image)
@@ -190,24 +252,3 @@ class InvoicePage:
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
         self.page = masked_img_inv2
-
-
-##### TODO: The following code is relevant to text-based invoices and needs to be integrated
-##### into the invoice class in the future
-
-
-def convert_text_to_result(text):
-
-    result = (
-        None
-    )  # TODO: Use invoice2data or other means to obtain results using text from invoice
-
-    return result
-
-
-def convert_text_based_pdf_to_result(invoice):
-    templates = read_templates("./templates")
-
-    # TODO: Implement data extraction using invoice2data
-
-    return None
