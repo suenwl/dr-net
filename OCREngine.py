@@ -179,7 +179,7 @@ class OCREngine:
         stopwords_set = set(stopwords.words("english"))
         return list(filter(lambda t: t.text not in stopwords_set, tokens))
 
-    def OCR(self, image: Image, verbose=False):
+    def OCR(self, image: Image, verbose:bool=False):
         import time
 
         start_time = time.time()

@@ -15,7 +15,7 @@ class Classifier:
             "Random Forest": None,
         }
 
-    def create_training_data(self, training_data_path: str, verbose=False):
+    def create_training_data(self, training_data_path: str, verbose:bool=False):
         # This tuple represents the number of pages to do OCR for for each invoice. Eg. (2,1) represents do OCR for the first 2 pages, and for the last page
         NUMBER_OF_PAGES_FOR_OCR = (2, 2)
         for filename in os.listdir(training_data_path):
@@ -50,6 +50,7 @@ class Classifier:
 
                 # Try mapping labels
                 invoice.map_labels(verbose=verbose)
+                invoice.save_data()
 
     def save_model(self, model: str, file_name: str):
         with open(file_name, "w") as text_file:
