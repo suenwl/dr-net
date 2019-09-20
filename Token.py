@@ -13,12 +13,13 @@ class Token:
         coordinates: Dict[str, int],
         confidence: int,
         token_structure: Dict[str, int],
+        category: str = None,
     ):
         self.text = text
         self.coordinates = coordinates
         self.confidence = confidence
         self.token_structure = token_structure
-        self.category = None
+        self.category = category
 
     def __repr__(self):
         return self.text if self.text else str(self.token_structure)

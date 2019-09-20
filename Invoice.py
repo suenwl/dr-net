@@ -24,6 +24,7 @@ class Invoice:
         return len(self.pages)
 
     def save_data(self, file_name: str = None):
+        """Save all of this invoice's data (OCR outputs) into a json save file"""
         file_path_stem = self.original_file_path.rsplit("/", 1)[0] + "/"
         if not file_name:
             file_path = file_path_stem + self.readable_name[:-4] + "-savefile.json"
@@ -33,10 +34,17 @@ class Invoice:
         with open(file_path, "w") as save_file:
             json.dump(self, save_file, cls=ObjectEncoder)
 
-    def load_data(self,file_name: str = None):
+    def load_data(self, file_name: str = None):
+        """Loads invoice save data from a json save file, given the file name"""
         file_path_stem = self.original_file_path.rsplit("/", 1)[0] + "/"
+        if not file_name:
+            file_path = file_path_stem + self.readable_name[:-4] + "-savefile.json"
 
-        
+        with open(file_path, "r") as save_file:
+            data = json.load(save_file)
+            for i, page_data in enumerate(data["pages"]):
+                page = self.pages[i]
+                page.load_data(page_data)
 
     def get_all_tokens(self):
         ocr_engine = OCREngine()
@@ -46,6 +54,7 @@ class Invoice:
         }
 
     def do_OCR(self, range: tuple = None, verbose: bool = False):
+        """Performs OCR on the entire invoice. A range of pages can be provided"""
         if not range:
             range = (0, self.length() - 1)
         for page in self.pages[range[0] : range[1]]:
@@ -97,6 +106,29 @@ class InvoicePage:
         self.grouped_tokens = None
         self.regions = None
         self.tokens_by_block_and_line = None
+
+    def load_data(self, data_packet: dict):
+        """Loads tokens, grouped_tokens, regions, tokens_by_block_and_line using a data packet. Raises an error if data is already populated"""
+        if (
+            self.tokens != None
+            or self.grouped_tokens != None
+            or self.regions != None
+            or self.tokens_by_block_and_line != None
+        ):
+            raise Exception(
+                "InvoicePage data loading error: Data already exists in InvoicePage object. Data can only be loaded onto a fresh InvoicePage"
+            )
+
+        create_tokens_from_dict = lambda dictionary: Token(**dictionary)
+
+        self.tokens = list(map(create_tokens_from_dict, data_packet["tokens"]))
+        self.grouped_tokens = list(
+            map(create_tokens_from_dict, data_packet["grouped_tokens"])
+        )
+        self.regions = list(map(create_tokens_from_dict, data_packet["regions"]))
+        self.tokens_by_block_and_line ={ block_num: { line_num : list(map(create_tokens_from_dict,line_tokens))  
+                    for line_num, line_tokens in block_data.items() }
+                    for block_num, block_data in data_packet["tokens_by_block_and_line"].items() }
 
     def do_OCR(self, verbose: bool = False):
         if not self.tokens:
