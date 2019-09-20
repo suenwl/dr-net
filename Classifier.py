@@ -2,8 +2,6 @@ from Invoice import InvoicePage, Invoice
 from Token import Token
 from sklearn import svm
 import pickle
-import os
-import json
 
 
 class Classifier:
@@ -14,43 +12,6 @@ class Classifier:
             "Naive Bayes": None,
             "Random Forest": None,
         }
-
-    def create_training_data(self, training_data_path: str, verbose:bool=False):
-        # This tuple represents the number of pages to do OCR for for each invoice. Eg. (2,1) represents do OCR for the first 2 pages, and for the last page
-        NUMBER_OF_PAGES_FOR_OCR = (2, 2)
-        for filename in os.listdir(training_data_path):
-            if filename.endswith(".pdf"):
-
-                # First check if json tags are present. If they aren't, skip this pdf
-                try:
-                    json_tags = json.load(
-                        open(training_data_path + "/" + filename[:-4] + ".json", "r")
-                    )
-                except IOError:
-                    print(
-                        "Warning: json tags for",
-                        filename,
-                        "does not exist. Check if they are in the same folder. Skipping this pdf",
-                    )
-                    continue
-
-                # Next, do OCR for the relevant pages in the invoice
-                invoice = Invoice(training_data_path + "/" + filename)
-                if verbose:
-                    print("Processing:", invoice.readable_name)
-
-                if invoice.length() < sum(NUMBER_OF_PAGES_FOR_OCR):
-                    for page in invoice.pages:
-                        page.do_OCR(verbose=verbose)
-                else:
-                    for page in invoice.pages[: NUMBER_OF_PAGES_FOR_OCR[0]]:
-                        page.do_OCR(verbose=verbose)
-                    for page in invoice.pages[-NUMBER_OF_PAGES_FOR_OCR[1] :]:
-                        page.do_OCR(verbose=verbose)
-
-                # Try mapping labels
-                invoice.map_labels(verbose=verbose)
-                invoice.save_data()
 
     def save_model(self, model: str, file_name: str):
         with open(file_name, "w") as text_file:
