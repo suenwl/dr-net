@@ -23,6 +23,21 @@ class Invoice:
     def length(self):
         return len(self.pages)
 
+    def save_data(self, file_name: str = None):
+        file_path_stem = self.original_file_path.rsplit("/", 1)[0] + "/"
+        if not file_name:
+            file_path = file_path_stem + self.readable_name[:-4] + "-savefile.json"
+        else:
+            file_path = file_path_stem + file_name
+
+        with open(file_path, "w") as save_file:
+            json.dump(self, save_file, cls=ObjectEncoder)
+
+    def load_data(self,file_name: str = None):
+        file_path_stem = self.original_file_path.rsplit("/", 1)[0] + "/"
+
+        
+
     def get_all_tokens(self):
         ocr_engine = OCREngine()
         return {
@@ -30,7 +45,7 @@ class Invoice:
             for (page_number, page) in enumerate(self.pages)
         }
 
-    def do_OCR(self, range: tuple = None, verbose=False):
+    def do_OCR(self, range: tuple = None, verbose: bool = False):
         if not range:
             range = (0, self.length() - 1)
         for page in self.pages[range[0] : range[1]]:
@@ -39,7 +54,7 @@ class Invoice:
     def get_page(self, page_number: int):
         return self.pages[page_number - 1]
 
-    def map_labels(self, json_file_path="", verbose=False):
+    def map_labels(self, json_file_path="", verbose: bool = False):
         """Maps json labels, created from the pdf labeller, to the existing grouped tokens in the invoice"""
         if not json_file_path:
             json_file_path = self.original_file_path[:-4] + ".json"
@@ -83,7 +98,7 @@ class InvoicePage:
         self.regions = None
         self.tokens_by_block_and_line = None
 
-    def do_OCR(self, verbose=False):
+    def do_OCR(self, verbose: bool = False):
         if not self.tokens:
             ocr_engine = OCREngine()
             self.tokens, self.grouped_tokens, self.tokens_by_block_and_line, self.regions = ocr_engine.OCR(
@@ -193,14 +208,6 @@ class InvoicePage:
             k: v for k, v in self.__dict__.items() if k != "page"
         }  # Do not include the page, since it is an image
 
-    # Save output by extracting text from token objects for NLP experimentation
-    def write_output_json(self, fileName):
-        newdict = {
-            k: list(map(lambda x: x.text, v)) for k, v in self.tokens_by_block.items()
-        }
-        with open(fileName, "w") as f:
-            json.dump(newdict, f, ensure_ascii=False)
-
     def remove_lines(self):
         pil_image = self.page.convert("RGB")
         open_cv_image = np.array(pil_image)
@@ -272,3 +279,15 @@ class InvoicePage:
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
         self.page = masked_img_inv2
+
+
+class ObjectEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Token):
+            return obj.__dict__
+        elif isinstance(obj, InvoicePage):
+            return {k: v for k, v in obj.__dict__.items() if k != "page"}
+        elif isinstance(obj, Invoice):
+            return obj.__dict__
+        else:
+            return super().default(obj)
