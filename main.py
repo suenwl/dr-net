@@ -10,7 +10,7 @@ from util import *
 
 print("Starting...")
 # Load invoices in specific folder
-INVOICE_PATH = "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Tech demo/Singtel.pdf"
+INVOICE_PATH = "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data/circles_2.pdf"
 # INVOICE_PATH = "/Users/candicetay/Documents/Academic/NUS/Year 4/BT3101 Capstone NatWest/PDF Invoices/Singtel Aug.pdf"
 # INVOICE_PATH = "/Users/candicetay/Documents/Academic/NUS/Year 4/BT3101 Capstone NatWest/PDF Invoices/Pest Control Service Contract.pdf"
 # INVOICE_PATH = "/Users/candicetay/Documents/Academic/NUS/Year 4/BT3101 Capstone NatWest/PDF Invoices/Dive Receipt.pdf"
@@ -24,8 +24,9 @@ INVOICE_PATH = "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business
 invoice = Invoice(INVOICE_PATH)
 page = invoice.get_page(1)
 # page.remove_lines()
-page.do_OCR()
+# invoice.do_OCR(verbose=True)
 feature_engine = FeatureEngine()
+classifier = Classifier()
 
 #%% Demo 1: create features for each token on the page
 for token in page.tokens:

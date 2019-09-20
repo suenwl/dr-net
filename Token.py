@@ -13,17 +13,22 @@ class Token:
         coordinates: Dict[str, int],
         confidence: int,
         token_structure: Dict[str, int],
+        category: str = None,
     ):
         self.text = text
         self.coordinates = coordinates
         self.confidence = confidence
         self.token_structure = token_structure
+        self.category = category
 
     def __repr__(self):
         return self.text if self.text else str(self.token_structure)
 
     def __str__(self):
         return self.text if self.text else str(self.token_structure)
+
+    def set_category(self, category: str):
+        self.category = category
 
     def is_horizontally_aligned_with(self, token):
         token_vertical_midpoint = (
@@ -86,3 +91,29 @@ class Token:
             ]
         else:
             raise Exception("Invalid option provided for get_aligned_tokens")
+
+    def get_percentage_overlap(self, coordinates, image_size):
+        image_width = image_size[0]
+        image_height = image_size[1]
+
+        token_x1 = self.coordinates["x"] / image_width
+        token_x2 = token_x1 + self.coordinates["width"] / image_width
+        token_y1 = self.coordinates["y"] / image_height
+        token_y2 = token_y1 + self.coordinates["height"] / image_height
+        token_area = abs(token_x1 - token_x2) * abs(token_y1 - token_y2)
+
+        rect_x1 = coordinates["x"]
+        rect_x2 = rect_x1 + coordinates["width"]
+        rect_y1 = coordinates["y"]
+        rect_y2 = rect_y1 + coordinates["height"]
+        rect_area = abs(rect_x1 - rect_x2) * abs(rect_y1 - rect_y2)
+
+        x1 = max(min(token_x1, token_x2), min(rect_x1, rect_x2))
+        y1 = max(min(token_y1, token_y2), min(rect_y1, rect_y2))
+        x2 = min(max(token_x1, token_x2), max(rect_x1, rect_x2))
+        y2 = min(max(token_y1, token_y2), max(rect_y1, rect_y2))
+        if x1 < x2 and y1 < y2:  # If there is an overlap
+            overlap_area = abs(x2 - x1) * abs(y2 - y1)
+            return overlap_area / (rect_area + token_area - overlap_area)
+        else:
+            return 0

@@ -20,7 +20,7 @@ class OCREngine:
     def clean_OCR_output(self, raw_OCR_output: DataFrame):
         """ Cleans the OCR output by removing uncessary characters """
 
-        UNECESSARY_CHARACTERS = [" ", "(", ")", "&", ";"]
+        UNECESSARY_CHARACTERS = [" ", "(", ")", "&", ";", "|"]
 
         without_null = raw_OCR_output.loc[raw_OCR_output["text"].notnull()]
 
@@ -134,13 +134,21 @@ class OCREngine:
             for line in blocks_and_lines[block]:
                 current_line = blocks_and_lines[block][line]
                 current_group = []
-                ADJUSTMENT_FACTOR = 5
+                ADJUSTMENT_FACTOR = 10
 
                 for token in current_line:
                     if current_group:
+                        height_of_current_group = max(
+                            list(
+                                map(
+                                    lambda token: token.coordinates["height"],
+                                    current_group,
+                                )
+                            )
+                        )
                         TOO_FAR = (
                             horizontal_distance_between(token, current_group[-1])
-                            > token.coordinates["height"] / 2 + ADJUSTMENT_FACTOR
+                            > height_of_current_group / 2 + ADJUSTMENT_FACTOR
                         )
 
                         LAST_TOKEN_ENDS_WITH_COLON = current_group[-1].text[-1] == ":"
@@ -171,7 +179,7 @@ class OCREngine:
         stopwords_set = set(stopwords.words("english"))
         return list(filter(lambda t: t.text not in stopwords_set, tokens))
 
-    def OCR(self, image: Image):
+    def OCR(self, image: Image, verbose:bool=False):
         import time
 
         start_time = time.time()
@@ -183,7 +191,8 @@ class OCREngine:
             output_type="data.frame",
             config="pitsync_linear_version==6, textord_noise_rejwords==0， textord_noise_rejrows==0",
         )
-        print("--- %s seconds ---" % (time.time() - start_time))
+        if verbose:
+            print("--- Processed page in %s seconds ---" % (time.time() - start_time))
 
         # Do some preliminary processing and grouping of the raw OCR output
         cleaned_OCR_output = self.clean_OCR_output(raw_OCR_output)
