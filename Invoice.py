@@ -1,7 +1,6 @@
 # from pdf2image import convert_from_path
 import fitz
-from PIL import ImageDraw
-from PIL import Image
+from PIL import ImageDraw, Image, ImageFont
 from OCREngine import OCREngine
 from Token import Token
 from util import convert_pdf_to_image
@@ -56,7 +55,7 @@ class Invoice:
     def do_OCR(self, range: tuple = None, verbose: bool = False):
         """Performs OCR on the entire invoice. A range of pages can be provided"""
         if not range:
-            range = (0, self.length() - 1)
+            range = (0, self.length())
         for page in self.pages[range[0] : range[1]]:
             page.do_OCR(verbose=verbose)
 
@@ -109,15 +108,22 @@ class InvoicePage:
 
     def load_data(self, data_packet: dict):
         """Loads tokens, grouped_tokens, regions, tokens_by_block_and_line using a data packet. Raises an error if data is already populated"""
-        if (
-            self.tokens != None
-            or self.grouped_tokens != None
-            or self.regions != None
-            or self.tokens_by_block_and_line != None
-        ):
+        existing_data = [
+            self.tokens,
+            self.grouped_tokens,
+            self.regions,
+            self.tokens_by_block_and_line,
+        ]
+
+        if any(existing_data):  # If any of the data already exists in the invoicePage
             raise Exception(
                 "InvoicePage data loading error: Data already exists in InvoicePage object. Data can only be loaded onto a fresh InvoicePage"
             )
+
+        if not all(
+            [data for key, data in data_packet.items()]
+        ):  # If not all data in data_packet is present
+            return  # We probably didn't do OCR for this page previously, so just return
 
         create_tokens_from_dict = lambda dictionary: Token(**dictionary)
 
@@ -126,9 +132,13 @@ class InvoicePage:
             map(create_tokens_from_dict, data_packet["grouped_tokens"])
         )
         self.regions = list(map(create_tokens_from_dict, data_packet["regions"]))
-        self.tokens_by_block_and_line ={ block_num: { line_num : list(map(create_tokens_from_dict,line_tokens))  
-                    for line_num, line_tokens in block_data.items() }
-                    for block_num, block_data in data_packet["tokens_by_block_and_line"].items() }
+        self.tokens_by_block_and_line = {
+            block_num: {
+                line_num: list(map(create_tokens_from_dict, line_tokens))
+                for line_num, line_tokens in block_data.items()
+            }
+            for block_num, block_data in data_packet["tokens_by_block_and_line"].items()
+        }
 
     def do_OCR(self, verbose: bool = False):
         if not self.tokens:
@@ -174,10 +184,12 @@ class InvoicePage:
     ):  # detail can be group, block, paragraph, line, word
         def draw_rect(canvas: ImageDraw, token: Token, colour: tuple, width: int = 1):
             if tags:  # Display OCR text on top of bounding box
+                font = ImageFont.truetype("Andale Mono.ttf")
                 canvas.text(
                     (token.coordinates["x"], token.coordinates["y"] - 10),
                     token.text,
                     fill=(0, 0, 0),
+                    font=font,
                 )
 
             canvas.rectangle(
@@ -226,6 +238,9 @@ class InvoicePage:
                 "Invalid option for detail selected. Can only be 'block', 'paragraph', 'group', 'line', or 'word'"
             )
 
+        if not selected_to_draw: # If tokens not available, return an empty list
+            selected_to_draw = []
+
         for token in selected_to_draw:
             if token.category:  # Emphasise if this token has been labelled
                 draw_rect(canvas, token, (255, 0, 0), 3)
@@ -233,12 +248,6 @@ class InvoicePage:
                 draw_rect(canvas, token, (0, 255, 0))
 
         page_copy.show()
-
-    # Serialiser
-    def serialise(self):
-        return {
-            k: v for k, v in self.__dict__.items() if k != "page"
-        }  # Do not include the page, since it is an image
 
     def remove_lines(self):
         pil_image = self.page.convert("RGB")
