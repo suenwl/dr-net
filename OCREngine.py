@@ -10,17 +10,37 @@ import nltk
 from nltk.corpus import stopwords
 
 from pandas import DataFrame
-from PIL import Image
+from PIL import Image, ImageFilter, ImageEnhance
 
 from Token import Token
 
 # for windows since brew does not work, is there a better way of doing this?
 # pytesseract.pytesseract.tesseract_cmd = "C:/Program Files/Tesseract-OCR/tesseract.exe"
 class OCREngine:
+    @classmethod
+    def preprocess_image(cls, image):
+        thresh = 160
+        fn = lambda x: 255 if x > thresh else 0
+        black_and_white = image.convert("L").point(fn, mode="1")
+        return black_and_white
+
     def clean_OCR_output(self, raw_OCR_output: DataFrame):
         """ Cleans the OCR output by removing uncessary characters """
 
-        UNECESSARY_CHARACTERS = [" ", "(", ")", "&", ";", "|"]
+        UNECESSARY_CHARACTERS = [
+            " ",
+            "(",
+            ")",
+            "&",
+            ";",
+            "|",
+            "—",
+            "=",
+            "==",
+            ",",
+            ">",
+            "<",
+        ]
 
         without_null = raw_OCR_output.loc[raw_OCR_output["text"].notnull()]
 
@@ -134,7 +154,7 @@ class OCREngine:
             for line in blocks_and_lines[block]:
                 current_line = blocks_and_lines[block][line]
                 current_group = []
-                ADJUSTMENT_FACTOR = 10
+                ADJUSTMENT_FACTOR = 7
 
                 for token in current_line:
                     if current_group:
@@ -179,7 +199,7 @@ class OCREngine:
         stopwords_set = set(stopwords.words("english"))
         return list(filter(lambda t: t.text not in stopwords_set, tokens))
 
-    def OCR(self, image: Image, verbose:bool=False):
+    def OCR(self, image: Image, verbose: bool = False):
         import time
 
         start_time = time.time()

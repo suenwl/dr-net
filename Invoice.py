@@ -101,6 +101,7 @@ class Invoice:
 class InvoicePage:
     def __init__(self, image: Image):
         self.page = image
+        self.processed_page = OCREngine.preprocess_image(image)
         self.tokens = None
         self.grouped_tokens = None
         self.regions = None
@@ -144,7 +145,7 @@ class InvoicePage:
         if not self.tokens:
             ocr_engine = OCREngine()
             self.tokens, self.grouped_tokens, self.tokens_by_block_and_line, self.regions = ocr_engine.OCR(
-                self.page, verbose=verbose
+                self.processed_page, verbose=verbose
             )
 
     def search_tokens(self, text: str, token_list="group"):
@@ -203,7 +204,7 @@ class InvoicePage:
                 width=width,
             )
 
-        page_copy = self.page.copy()
+        page_copy = self.processed_page.copy().convert("RGB")
         canvas = ImageDraw.Draw(page_copy)
         if detail == "block":
             selected_to_draw = list(
@@ -238,7 +239,7 @@ class InvoicePage:
                 "Invalid option for detail selected. Can only be 'block', 'paragraph', 'group', 'line', or 'word'"
             )
 
-        if not selected_to_draw: # If tokens not available, return an empty list
+        if not selected_to_draw:  # If tokens not available, return an empty list
             selected_to_draw = []
 
         for token in selected_to_draw:
@@ -250,7 +251,7 @@ class InvoicePage:
         page_copy.show()
 
     def remove_lines(self):
-        pil_image = self.page.convert("RGB")
+        pil_image = self.processed_page.convert("RGB")
         open_cv_image = np.array(pil_image)
         # Convert RGB to BGR
         img = open_cv_image[:, :, ::-1].copy()
@@ -316,10 +317,10 @@ class InvoicePage:
         masked_img_inv2 = cv2.bitwise_not(masked_img2)
         # show final result
         # cv2.imshow("masked img2", masked_img_inv2)
-        cv2.imwrite("final_result.jpg", masked_img_inv2)
+        # cv2.imwrite("final_result.jpg", masked_img_inv2)
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
-        self.page = masked_img_inv2
+        self.processed_page = Image.fromarray(masked_img_inv2)
 
 
 class ObjectEncoder(json.JSONEncoder):
