@@ -20,10 +20,12 @@ class Token:
         self.confidence = confidence
         self.token_structure = token_structure
 
-        #feature related fields
+        # feature related fields
         self.date_values = self.get_dates()
         self.currency = self.get_currency()
-        self.lable = self.get_label()
+        self.address = self.get_address()
+        self.num_lable = self.get_num_label()
+        self.total_label = self.get_total_label()
 
     def __repr__(self):
         return self.text if self.text else str(self.token_structure)
@@ -31,8 +33,53 @@ class Token:
     def __str__(self):
         return self.text if self.text else str(self.token_structure)
 
-    def get_label(self):
+    def get_address(self):
+        kw = [
+            "drive",
+            "dr",
+            "road",
+            "rd",
+            "lane",
+            "ln",
+            "ave",
+            "avenue",
+            "street",
+            "jalan",
+            "jln",
+            "boulevard",
+            "blvd",
+            "way",
+            "park",
+            "gate",
+            "crescent",
+            "cres",
+            "singapore",
+            "grove",
+            "grv"
+        ]
+        if self.text:
+            text_array = self.text.lower().split(" ")
+            for w in kw:
+                for t in text_array:
+                    if re.search("^" + w, t) and len(text_array) < 10:
+                        return self.text
 
+    # returns the text if "total" or some variant is contained in text and group is fewer than 5 words
+    def get_total_label(self):
+        kw = ["total", "Total"]
+        if self.text:
+            for w in kw:
+                if w in self.text and len(self.text.split(" ")) < 5:
+                    return self.text
+
+    # returns string for description of number, eg. account number, invoice number
+    def get_num_label(self):
+        kw = ["no.", "no:", "number", "num", "No.", "No:"]
+        if self.text:
+            text_array = self.text.split(" ")
+            for w in kw:
+                if w in text_array and text_array.index(w) > 0:
+                    return text_array[text_array.index(w) - 1]
 
     # returns a dictionary of {cur: <prefix> , value: <dollar amt> }
     # eg. {cur: $ , value: 5.00 }
@@ -40,18 +87,22 @@ class Token:
         currencies = ["$", "¥", "dollar", "SGD", "USD", "US$", "SG$", "$SG", "$US"]
         out = {}
         for cur in currencies:
-            if self.text and cur in self.text.lower():
-                out['cur'] = cur
+            if self.text and cur in self.text:
+                out["cur"] = cur
                 start = self.text.index(cur) + len(cur)
                 for i in range(start, len(self.text)):
                     char = self.text[i]
                     if not char.isdigit() and not (char in [".", ","]):
                         break
-                out['val'] = float(self.text[start:i+1])
-                return out
+                try:
+                    out["val"] = float(self.text[start : i + 1])
+                    return out
+                except:
+                    return None
 
     # checks if token is a date token
     def get_dates(self):
+        # TODO parse range of dates and into date objects
         dates = []
         text = self.text
         if type(text) is str:
