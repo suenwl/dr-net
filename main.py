@@ -14,7 +14,7 @@ print("Starting...")
 #INVOICE_PATH = "/Users/candicetay/Documents/Academic/NUS/Year 4/BT3101 Capstone NatWest/PDF Invoices/Pest Control Service Contract.pdf"
 #INVOICE_PATH = "/Users/candicetay/Documents/Academic/NUS/Year 4/BT3101 Capstone NatWest/PDF Invoices/Dive Receipt.pdf"
 #INVOICE_PATH = "/Users/candicetay/Documents/Academic/NUS/Year 4/BT3101 Capstone NatWest/PDF Invoices/Circles April 18.pdf"
-INVOICE_PATH = "/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices/Tour Invoice.pdf"
+INVOICE_PATH = "/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices/Circles April 18.pdf"
 invoice = Invoice(INVOICE_PATH)
 page = invoice.get_page(1)
 # page.remove_lines()
@@ -35,6 +35,7 @@ for i, block in page.get_tokens_by_block().items():
 #%% Demo 3: Print page
 #page.page.resize((600, 900))
 #page.draw_bounding_boxes("word")
-print(list(map(lambda x :x.date_values,page.grouped_tokens)))
+#print(list(map(lambda x :x.date_values,page.grouped_tokens)))
+print(list(map(lambda x :x.get_currency(),page.grouped_tokens)))
 #%%
 #%%

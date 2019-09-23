@@ -19,7 +19,11 @@ class Token:
         self.coordinates = coordinates
         self.confidence = confidence
         self.token_structure = token_structure
-        self.date_values = self.get_dates(text)
+
+        #feature related fields
+        self.date_values = self.get_dates()
+        self.currency = self.get_currency()
+        self.lable = self.get_label()
 
     def __repr__(self):
         return self.text if self.text else str(self.token_structure)
@@ -27,9 +31,29 @@ class Token:
     def __str__(self):
         return self.text if self.text else str(self.token_structure)
 
+    def get_label(self):
+
+
+    # returns a dictionary of {cur: <prefix> , value: <dollar amt> }
+    # eg. {cur: $ , value: 5.00 }
+    def get_currency(self):
+        currencies = ["$", "¥", "dollar", "SGD", "USD", "US$", "SG$", "$SG", "$US"]
+        out = {}
+        for cur in currencies:
+            if self.text and cur in self.text.lower():
+                out['cur'] = cur
+                start = self.text.index(cur) + len(cur)
+                for i in range(start, len(self.text)):
+                    char = self.text[i]
+                    if not char.isdigit() and not (char in [".", ","]):
+                        break
+                out['val'] = float(self.text[start:i+1])
+                return out
+
     # checks if token is a date token
-    def get_dates(self, text):
+    def get_dates(self):
         dates = []
+        text = self.text
         if type(text) is str:
             month_names = set(
                 [
@@ -71,8 +95,8 @@ class Token:
 
                             if index < len(text_list) - 1:
                                 date.append(text_list[index + 1])
-                          
-                            if len(date) > 1:     
+
+                            if len(date) > 1:
                                 dates.append(" ".join(date))
 
             # token has only one word

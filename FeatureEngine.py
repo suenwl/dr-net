@@ -26,6 +26,12 @@ class FeatureEngine:
             token, date_related_tokens
         )
 
+        #Length of token
+        # TODO
+
+        #Any enclosing brackets
+        # TODO
+
         ### Invoice number alignment related features ###
         # TODO: Implement features that determine if token is aligned with invoice number related tokens
 
