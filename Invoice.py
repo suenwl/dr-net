@@ -103,6 +103,7 @@ class InvoicePage:
         self.grouped_tokens = None
         self.regions = None
         self.tokens_by_block_and_line = None
+        self.size = {"x": image.size[0], "y": image.size[1]}
 
     def load_data(self, data_packet: dict):
         """Loads tokens, grouped_tokens, regions, tokens_by_block_and_line using a data packet. Raises an error if data is already populated"""
@@ -159,7 +160,26 @@ class InvoicePage:
         )
 
         return filtered_tokens
-
+    ''' deprecated for now
+    def remove_stopwords(self):
+        if self.tokens:
+            stopwords_set = set(stopwords.words("english"))
+            self.tokens_no_stopwords = list(
+                filter(lambda t: t.text not in stopwords_set, self.tokens)
+            )
+    '''
+    def get_company_name(self):
+        if not self.tokens_by_block:
+            self.get_tokens_by_block()
+        target = set(["limited", "limited.", "ltd", "ltd."])
+        name_candidates = []
+        for block in self.tokens_by_block.values():
+            text_block = list(map(lambda t: t.text, block))
+            for index, text in enumerate(text_block):
+                if text.lower() in target:
+                    name_candidates.append(text_block[index - 3 : index])
+        print(name_candidates)
+        
     def find_overlapping_token(self, coordinates):
         OVERLAP_THRESHOLD = 0.3
         max_overlap = 0
