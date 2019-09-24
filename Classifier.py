@@ -26,7 +26,7 @@ class Classifier:
         #original line without use of grid search to optimise parameters
         #classifier = svm.SVC(gamma=0.001, C=100.0)
         svc = svm.SVC()
-        clf = GridSearchCV(svc, parameters, cv=5)
+        classifier = GridSearchCV(svc, parameters, cv=5)
         classifier.fit(data, labels)
         self.models["Support Vector Machine"] = classifier
         self.save_model(pickle.dumps(classifier), "svm_model")
