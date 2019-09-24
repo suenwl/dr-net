@@ -48,7 +48,7 @@ class Classifier:
 
     def train_random_forest(self, data, labels):
         classifier = RandomForestClassifier(n_estimators=100, max_depth=2, random_state=0)
-                classifier.fit(data, labels)
+        classifier.fit(data, labels)
         self.models["Random Forest"] = classifier
         self.save_model(pickle.dumps(classifier), "rf_model")
 
