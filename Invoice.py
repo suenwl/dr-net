@@ -43,6 +43,7 @@ class InvoicePage:
         self.grouped_tokens = None
         self.regions = None
         self.tokens_by_block_and_line = None
+        self.size = {"x": image.size[0], "y": image.size[1]}
 
     def do_OCR(self):
         if not self.tokens:
@@ -133,11 +134,13 @@ class InvoicePage:
         page_copy.show()
 
     #%% Demo 4: Save output by extracting text from token objects for NLP experimentation
-    def write_output_json(self,fileName):
-        newdict = {k: list(map(lambda x: x.text, v)) for k, v in self.tokens_by_block.items()}
-        with open(fileName, 'w') as f:
+    def write_output_json(self, fileName):
+        newdict = {
+            k: list(map(lambda x: x.text, v)) for k, v in self.tokens_by_block.items()
+        }
+        with open(fileName, "w") as f:
             json.dump(newdict, f, ensure_ascii=False)
-            
+
     def remove_lines(self):
         pil_image = self.page.convert("RGB")
         open_cv_image = np.array(pil_image)

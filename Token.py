@@ -26,6 +26,8 @@ class Token:
         self.address = self.get_address()
         self.num_lable = self.get_num_label()
         self.total_label = self.get_total_label()
+        self.date_label = self.get_date_label()
+        self.contains_digit = self.get_contains_digits()
 
     def __repr__(self):
         return self.text if self.text else str(self.token_structure)
@@ -33,6 +35,22 @@ class Token:
     def __str__(self):
         return self.text if self.text else str(self.token_structure)
 
+    # returns true if has at least one digit, false otherwise
+    def get_contains_digits(self):
+        if self.text:
+            for c in self.text:
+                if c.isdigit():
+                    return True
+            return False
+
+    def get_date_label(self):
+        kw = ["date", "Date"]
+        if self.text:
+            for w in kw:
+                if w in self.text:
+                    return self.text
+
+    # tries to extract address from token
     def get_address(self):
         kw = [
             "drive",
