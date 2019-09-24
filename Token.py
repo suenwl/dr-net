@@ -26,7 +26,7 @@ class Token:
         self.date_values = self.get_dates()
         self.currency = self.get_currency()
         self.address = self.get_address()
-        self.num_lable = self.get_num_label()
+        self.num_label = self.get_num_label()
         self.total_label = self.get_total_label()
         self.date_label = self.get_date_label()
         self.contains_digit = self.get_contains_digits()
