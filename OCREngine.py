@@ -4,23 +4,91 @@
 
 import pytesseract
 import pandas as pd
+import numpy as np
 import nltk
+import cv2
 
 # nltk.download("stopwords") #Use if nltk stopwords not downloaded
 from nltk.corpus import stopwords
 
 from pandas import DataFrame
-from PIL import Image
+from PIL import Image, ImageFilter, ImageEnhance
 
 from Token import Token
 
 # for windows since brew does not work, is there a better way of doing this?
 # pytesseract.pytesseract.tesseract_cmd = "C:/Program Files/Tesseract-OCR/tesseract.exe"
 class OCREngine:
+    @classmethod
+    def preprocess_image(cls, image):
+        thresh = 160
+        fn = lambda x: 255 if x > thresh else 0
+        black_and_white = image.convert("L").point(fn, mode="1")
+        lines_removed = cls.remove_lines(black_and_white)
+        return lines_removed
+
+    @classmethod
+    def remove_lines(cls, image):
+        pil_image = image.convert("RGB")
+        open_cv_image = np.array(pil_image)
+        # Convert RGB to BGR
+        img = open_cv_image[:, :, ::-1].copy()
+        # Convert to grey for easier processing
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # inverse colour og image for easier processing of lines
+        img = cv2.bitwise_not(img)
+        th2 = cv2.adaptiveThreshold(
+            img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 15, -2
+        )
+
+        horizontal = th2
+        vertical = th2
+        rows, cols = horizontal.shape
+        horizontalsize = int(cols / 15)
+        horizontalStructure = cv2.getStructuringElement(
+            cv2.MORPH_RECT, (horizontalsize, 1)
+        )
+        horizontal = cv2.erode(horizontal, horizontalStructure, (-1, -1))
+        horizontal = cv2.dilate(horizontal, horizontalStructure, (-1, -1))
+
+        # inverse the image, so that lines are black for masking
+        horizontal_inv = cv2.bitwise_not(horizontal)
+        # perform bitwise_and to mask the lines with provided mask
+        masked_img = cv2.bitwise_and(img, img, mask=horizontal_inv)
+        # reverse the image back to normal
+        masked_img_inv = cv2.bitwise_not(masked_img)
+
+        verticalsize = int(rows / 30)
+        verticalStructure = cv2.getStructuringElement(cv2.MORPH_RECT, (1, verticalsize))
+        vertical = cv2.erode(vertical, verticalStructure, (-1, -1))
+        vertical = cv2.dilate(vertical, verticalStructure, (-1, -1))
+
+        masked_img_inv = cv2.bitwise_not(masked_img_inv)
+        # inverse the image, so that lines are black for masking
+        vertical_inv = cv2.bitwise_not(vertical)
+        # perform bitwise_and to mask the lines with provided mask
+        masked_img2 = cv2.bitwise_and(masked_img_inv, masked_img_inv, mask=vertical_inv)
+        # reverse the image back to normal
+        masked_img_inv2 = cv2.bitwise_not(masked_img2)
+        return Image.fromarray(masked_img_inv2)
+
     def clean_OCR_output(self, raw_OCR_output: DataFrame):
         """ Cleans the OCR output by removing uncessary characters """
 
-        UNECESSARY_CHARACTERS = [" ", "(", ")", "&", ";"]
+        UNECESSARY_CHARACTERS = [
+            " ",
+            "(",
+            ")",
+            "&",
+            ";",
+            "|",
+            "—",
+            "=",
+            "==",
+            ",",
+            ">",
+            "<",
+        ]
 
         without_null = raw_OCR_output.loc[raw_OCR_output["text"].notnull()]
 
@@ -134,13 +202,21 @@ class OCREngine:
             for line in blocks_and_lines[block]:
                 current_line = blocks_and_lines[block][line]
                 current_group = []
-                ADJUSTMENT_FACTOR = 5
+                ADJUSTMENT_FACTOR = 7
 
                 for token in current_line:
                     if current_group:
+                        height_of_current_group = max(
+                            list(
+                                map(
+                                    lambda token: token.coordinates["height"],
+                                    current_group,
+                                )
+                            )
+                        )
                         TOO_FAR = (
                             horizontal_distance_between(token, current_group[-1])
-                            > token.coordinates["height"] / 2 + ADJUSTMENT_FACTOR
+                            > height_of_current_group / 2 + ADJUSTMENT_FACTOR
                         )
 
                         LAST_TOKEN_ENDS_WITH_COLON = current_group[-1].text[-1] == ":"
@@ -171,7 +247,7 @@ class OCREngine:
         stopwords_set = set(stopwords.words("english"))
         return list(filter(lambda t: t.text not in stopwords_set, tokens))
 
-    def OCR(self, image: Image):
+    def OCR(self, image: Image, verbose: bool = False):
         import time
 
         start_time = time.time()
@@ -183,7 +259,8 @@ class OCREngine:
             output_type="data.frame",
             config="pitsync_linear_version==6, textord_noise_rejwords==0， textord_noise_rejrows==0",
         )
-        print("--- %s seconds ---" % (time.time() - start_time))
+        if verbose:
+            print("--- Processed page in %s seconds ---" % (time.time() - start_time))
 
         # Do some preliminary processing and grouping of the raw OCR output
         cleaned_OCR_output = self.clean_OCR_output(raw_OCR_output)

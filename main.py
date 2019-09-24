@@ -17,6 +17,7 @@ page = invoice.get_page(1)
 page.do_OCR()
 #page.draw_bounding_boxes("group")
 feature_engine = FeatureEngine()
+classifier = Classifier()
 
 #%% Demo 1: create features for each token on the page
 for token in page.grouped_tokens:
@@ -40,6 +41,3 @@ for i, block in page.get_tokens_by_block().items():
 # print(list(map(lambda x :x.get_total_label(),page.grouped_tokens)))
 # print(list(map(lambda x :x.contains_digit,page.grouped_tokens)))
 # print(list(map(lambda x :[x.coordinates, x.text],page.grouped_tokens)))
-
-#%%
-#%%
