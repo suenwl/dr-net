@@ -86,7 +86,7 @@ class Token:
             for w in kw:
                 for t in text_array:
                     if re.search("^" + w, t) and len(text_array) < 10:
-                        return self.text
+                        return self.text.lower()
 
     # returns the text if "total" or some variant is contained in text and group is fewer than 5 words
     def get_total_label(self):
@@ -94,7 +94,7 @@ class Token:
         if self.text:
             for w in kw:
                 if w in self.text and len(self.text.split(" ")) < 5:
-                    return self.text
+                    return self.text.lower()
 
     # returns string for description of number, eg. account number, invoice number
     def get_num_label(self):
@@ -102,7 +102,7 @@ class Token:
         if self.text:
             text_array = self.text.lower().split(" ")
             if any(word in text_array for word in kw):
-                return self.text
+                return self.text.lower()
 
     # returns a dictionary of {cur: <prefix> , value: <dollar amt> }
     # eg. {cur: $ , value: 5.00 }
