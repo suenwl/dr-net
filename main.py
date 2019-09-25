@@ -8,12 +8,14 @@ from Classifier import Classifier
 from util import *
 
 print("Starting...")
+print("Loading invoices...")
 data = Classifier.create_train_and_test_packet(
-    "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/circles invoices",
+    "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data",
     verbose=True,
 )
 
 classifier = Classifier()
+print("Training classifier...")
 classifier.train("Support Vector Machine", data["train_data"], data["train_labels"])
 predictions = classifier.predict(data["test_data"], "Support Vector Machine")
 classifier.prediction_summary(
