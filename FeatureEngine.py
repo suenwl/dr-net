@@ -214,6 +214,14 @@ class FeatureEngine:
         features["vert_align_to_cell_w_totallabel"] = 0
         features["vert_align_to_cell_w_digit"] = 0
 
+        features["hori_align_to_cell_w_date"] = 0
+        features["hori_align_to_cell_w_currency"] = 0
+        features["hori_align_to_cell_w_address"] = 0
+        features["hori_align_to_cell_w_datelabel"] = 0
+        features["hori_align_to_cell_w_numlabel"] = 0
+        features["hori_align_to_cell_w_totallabel"] = 0
+        features["hori_align_to_cell_w_digit"] = 0
+
         for t in invoicePage.grouped_tokens:
             if t is not token:
                 if is_vert_aligned(t, token, moe):
