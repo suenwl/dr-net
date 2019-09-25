@@ -168,17 +168,6 @@ class InvoicePage:
                 filter(lambda t: t.text not in stopwords_set, self.tokens)
             )
     '''
-    def get_company_name(self):
-        if not self.tokens_by_block:
-            self.get_tokens_by_block()
-        target = set(["limited", "limited.", "ltd", "ltd."])
-        name_candidates = []
-        for block in self.tokens_by_block.values():
-            text_block = list(map(lambda t: t.text, block))
-            for index, text in enumerate(text_block):
-                if text.lower() in target:
-                    name_candidates.append(text_block[index - 3 : index])
-        print(name_candidates)
         
     def find_overlapping_token(self, coordinates):
         OVERLAP_THRESHOLD = 0.3
