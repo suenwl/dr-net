@@ -14,7 +14,7 @@ class Token:
         coordinates: Dict[str, int],
         confidence: int,
         token_structure: Dict[str, int],
-        category: str = None,
+        category: str = "Others",
     ):
         self.text = text
         self.coordinates = coordinates
@@ -29,6 +29,8 @@ class Token:
         self.num_label = self.get_num_label()
         self.total_label = self.get_total_label()
         self.date_label = self.get_date_label()
+        self.period_label = self.get_period_label()
+        self.company = self.get_company()
         self.contains_digit = self.get_contains_digits()
 
     def __repr__(self):
@@ -46,11 +48,26 @@ class Token:
             return False
 
     def get_date_label(self):
-        kw = ["date", "Date"]
+        kw = ["invoice", "bill", "issued", "receipt"]
         if self.text:
-            for w in kw:
-                if w in self.text:
-                    return self.text
+            if "date" in self.text.lower():
+                if any(word in self.text.lower() for word in kw):
+                    return (
+                        self.text.lower()
+                    )  # Return the entire text if it is specified that it is a invoice date
+                else:
+                    return "date"  # else just return date
+
+    def get_period_label(self):
+        kw = ["period"]
+        if self.text:
+            return any(word in self.text.lower() for word in kw)
+
+    def get_company(self):
+        kw = ["limited", "limited.", "ltd", "ltd."]
+        if self.text:
+            if any(word in self.text.lower() for word in kw):
+                return self.text
 
     # tries to extract address from token
     def get_address(self):
@@ -88,7 +105,7 @@ class Token:
             for w in kw:
                 for t in text_array:
                     if re.search("^" + w, t) and len(text_array) < 10:
-                        return self.text
+                        return self.text.lower()
 
     # returns the text if "total" or some variant is contained in text and group is fewer than 5 words
     def get_total_label(self):
@@ -96,29 +113,15 @@ class Token:
         if self.text:
             for w in kw:
                 if w in self.text and len(self.text.split(" ")) < 5:
-                    return self.text
+                    return self.text.lower()
 
     # returns string for description of number, eg. account number, invoice number
     def get_num_label(self):
-        kw = [
-            "no.",
-            "no:",
-            "number",
-            "num",
-            "No.",
-            "No:" "No.:",
-            "NO",
-            "Invoice #:",
-            "NO.",
-            "Number",
-            "ID",
-            "Membership:",
-        ]
+        kw = ["no", "no.", "no:", "no.:", "number", "num", "#", "#:"]
         if self.text:
-            text_array = self.text.split(" ")
-            for w in kw:
-                if w in text_array and text_array.index(w) > 0:
-                    return text_array[text_array.index(w) - 1]
+            text_array = self.text.lower().split(" ")
+            if any(word in text_array for word in kw):
+                return self.text.lower()
 
     # returns a dictionary of {cur: <prefix> , value: <dollar amt> }
     # eg. {cur: $ , value: 5.00 }

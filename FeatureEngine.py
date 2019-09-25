@@ -196,13 +196,15 @@ class FeatureEngine:
         features["percentile_height"] = perc_h / len(invoicePage.grouped_tokens)
 
         # boolean if token contains fields
-        features["contains_date"] = 0 if token.date_values else 1
-        features["contains_currency"] = 0 if token.currency else 1
-        features["contains_address"] = 0 if token.address else 1
-        features["contains_num_label"] = 0 if token.num_label else 1
-        features["contains_total_label"] = 0 if token.total_label else 1
-        features["contains_date_label"] = 0 if token.date_label else 1
-        features["contains_digit"] = 0 if token.contains_digit else 1
+        features["contains_date"] = 1 if token.date_values else 0
+        features["contains_currency"] = 1 if token.currency else 0
+        features["contains_address"] = 1 if token.address else 0
+        features["contains_num_label"] = 1 if token.num_label else 0
+        features["contains_total_label"] = 1 if token.total_label else 0
+        features["contains_date_label"] = 1 if token.date_label else 0
+        features["contains_date_of_invoice_label"] = 1 if features["contains_date_label"] and len(token.date_label.split(" ")) > 1 else 0 # This is a more specific feature that the one above
+        features["contains_digit"] = 1 if token.contains_digit else 0
+        features["contains_company"] = 1 if token.company else 0
 
         # boolean if aligned with selected tokens
         moe = 10  # arbitary 10 pixle margin of error
@@ -210,17 +212,26 @@ class FeatureEngine:
         features["vert_align_to_cell_w_currency"] = 0
         features["vert_align_to_cell_w_address"] = 0
         features["vert_align_to_cell_w_datelabel"] = 0
+        features["vert_align_to_cell_w_dateofinvoicelabel"] = 0
         features["vert_align_to_cell_w_numlabel"] = 0
         features["vert_align_to_cell_w_totallabel"] = 0
         features["vert_align_to_cell_w_digit"] = 0
+        features["vert_align_to_cell_w_invoicenum_label"] = 0
+        features["vert_align_to_cell_w_accountnum_label"] = 0
+        features["vert_align_to_cell_w_ponum_label"] = 0
 
         features["hori_align_to_cell_w_date"] = 0
         features["hori_align_to_cell_w_currency"] = 0
         features["hori_align_to_cell_w_address"] = 0
         features["hori_align_to_cell_w_datelabel"] = 0
+        features["hori_align_to_cell_w_dateofinvoicelabel"] = 0
         features["hori_align_to_cell_w_numlabel"] = 0
         features["hori_align_to_cell_w_totallabel"] = 0
         features["hori_align_to_cell_w_digit"] = 0
+        features["hori_align_to_cell_w_invoicenum_label"] = 0
+        features["hori_align_to_cell_w_accountnum_label"] = 0
+        features["hori_align_to_cell_w_ponum_label"] = 0
+        
 
         for t in invoicePage.grouped_tokens:
             if t is not token:
@@ -233,12 +244,21 @@ class FeatureEngine:
                         features["vert_align_to_cell_w_address"] = 1
                     if t.date_label:
                         features["vert_align_to_cell_w_datelabel"] = 1
+                        if len(t.date_label.split(" ")) > 1: # Process the more specific case of date of invoice label
+                            features["vert_align_to_cell_w_dateofinvoicelabel"] = 1 
                     if t.num_label:
                         features["vert_align_to_cell_w_numlabel"] = 1
+                        if any(word in t.num_label for word in ["invoice","inv","receipt"]):
+                            features["vert_align_to_cell_w_invoicenum_label"] = 1
+                        if any(word in t.num_label for word in ["account","acc","customer"]):
+                            features["vert_align_to_cell_w_accountnum_label"] = 1
+                        if any(word in t.num_label for word in ["po","sales"]):
+                            features["vert_align_to_cell_w_ponum_label"] = 1
                     if t.total_label:
                         features["vert_align_to_cell_w_totallabel"] = 1
                     if t.contains_digit:
                         features["vert_align_to_cell_w_digit"] = 1
+
 
                 if is_hori_aligned(t, token, moe):
                     if t.date_values:
@@ -249,12 +269,21 @@ class FeatureEngine:
                         features["hori_align_to_cell_w_address"] = 1
                     if t.date_label:
                         features["hori_align_to_cell_w_datelabel"] = 1
+                        if len(t.date_label.split(" ")) > 1: # Process the more specific case of date of invoice label
+                            features["hori_align_to_cell_w_dateofinvoicelabel"] = 1 
                     if t.num_label:
                         features["hori_align_to_cell_w_numlabel"] = 1
+                        if any(word in t.num_label for word in ["invoice","inv","receipt"]):
+                            features["hori_align_to_cell_w_invoicenum_label"] = 1
+                        if any(word in t.num_label for word in ["account","acc","customer"]):
+                            features["hori_align_to_cell_w_accountnum_label"] = 1
+                        if any(word in t.num_label for word in ["po","sales"]):
+                            features["hori_align_to_cell_w_ponum_label"] = 1
                     if t.total_label:
                         features["hori_align_to_cell_w_totallabel"] = 1
                     if t.contains_digit:
                         features["hori_align_to_cell_w_digit"] = 1
+                    
 
         # dist to nearest cell with field (inf if no field in page)
         features["dist_nearest_cell_w_date"] = 99999#math.inf
