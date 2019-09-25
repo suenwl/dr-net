@@ -48,9 +48,7 @@ class Token:
     def get_date_label(self):
         kw = ["date", "Date"]
         if self.text:
-            for w in kw:
-                if w in self.text:
-                    return self.text
+            return any(word in self.text.lower() for word in kw)
 
     # tries to extract address from token
     def get_address(self):
