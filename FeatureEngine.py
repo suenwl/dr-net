@@ -12,6 +12,7 @@ class FeatureEngine:
     def map_labels_to_invoice_OCR(self, data_path: str, verbose: bool = False):
         # This tuple represents the number of pages to do OCR for for each invoice. Eg. (2,1) represents do OCR for the first 2 pages, and for the last page
         RANGE_OF_PAGES_FOR_OCR = (2, 2)
+        invoices = []
         for filename in os.listdir(data_path):
             if filename.endswith(".pdf"):
 
@@ -40,7 +41,10 @@ class FeatureEngine:
 
                 # Try mapping labels
                 invoice.map_labels(verbose=verbose)
+                invoices.append(invoice)
                 invoice.save_data()
+
+        return invoices
 
     @classmethod
     def create_features(self, token: Token, invoicePage: InvoicePage):

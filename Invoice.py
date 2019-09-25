@@ -160,15 +160,16 @@ class InvoicePage:
         )
 
         return filtered_tokens
-    ''' deprecated for now
+
+    """ deprecated for now
     def remove_stopwords(self):
         if self.tokens:
             stopwords_set = set(stopwords.words("english"))
             self.tokens_no_stopwords = list(
                 filter(lambda t: t.text not in stopwords_set, self.tokens)
             )
-    '''
-        
+    """
+
     def find_overlapping_token(self, coordinates):
         OVERLAP_THRESHOLD = 0.3
         max_overlap = 0
@@ -262,7 +263,11 @@ class ObjectEncoder(json.JSONEncoder):
         if isinstance(obj, Token):
             return obj.__dict__
         elif isinstance(obj, InvoicePage):
-            return {k: v for k, v in obj.__dict__.items() if k != "page"}
+            return {
+                k: v
+                for k, v in obj.__dict__.items()
+                if k not in ["page", "processed_page"]
+            }
         elif isinstance(obj, Invoice):
             return obj.__dict__
         else:
