@@ -14,7 +14,7 @@ class Token:
         coordinates: Dict[str, int],
         confidence: int,
         token_structure: Dict[str, int],
-        category: str = None,
+        category: str = "Others",
     ):
         self.text = text
         self.coordinates = coordinates
@@ -100,12 +100,11 @@ class Token:
 
     # returns string for description of number, eg. account number, invoice number
     def get_num_label(self):
-        kw = ["no.", "no:", "no.:", "number", "num", "#", "#:"]
+        kw = ["no", "no.", "no:", "no.:", "number", "num", "#", "#:"]
         if self.text:
             text_array = self.text.lower().split(" ")
-            for w in kw:
-                if w in text_array and text_array.index(w) > 0:
-                    return self.text
+            if any(word in text_array for word in kw):
+                return self.text
 
     # returns a dictionary of {cur: <prefix> , value: <dollar amt> }
     # eg. {cur: $ , value: 5.00 }
