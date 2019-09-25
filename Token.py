@@ -14,7 +14,7 @@ class Token:
         coordinates: Dict[str, int],
         confidence: int,
         token_structure: Dict[str, int],
-        category: str = None,
+        category: str = "Others",
     ):
         self.text = text
         self.coordinates = coordinates
@@ -48,9 +48,7 @@ class Token:
     def get_date_label(self):
         kw = ["date", "Date"]
         if self.text:
-            for w in kw:
-                if w in self.text:
-                    return self.text
+            return any(word in self.text.lower() for word in kw)
 
     # tries to extract address from token
     def get_address(self):
@@ -88,7 +86,7 @@ class Token:
             for w in kw:
                 for t in text_array:
                     if re.search("^" + w, t) and len(text_array) < 10:
-                        return self.text
+                        return self.text.lower()
 
     # returns the text if "total" or some variant is contained in text and group is fewer than 5 words
     def get_total_label(self):
@@ -96,29 +94,15 @@ class Token:
         if self.text:
             for w in kw:
                 if w in self.text and len(self.text.split(" ")) < 5:
-                    return self.text
+                    return self.text.lower()
 
     # returns string for description of number, eg. account number, invoice number
     def get_num_label(self):
-        kw = [
-            "no.",
-            "no:",
-            "number",
-            "num",
-            "No.",
-            "No:" "No.:",
-            "NO",
-            "Invoice #:",
-            "NO.",
-            "Number",
-            "ID",
-            "Membership:",
-        ]
+        kw = ["no", "no.", "no:", "no.:", "number", "num", "#", "#:"]
         if self.text:
-            text_array = self.text.split(" ")
-            for w in kw:
-                if w in text_array and text_array.index(w) > 0:
-                    return text_array[text_array.index(w) - 1]
+            text_array = self.text.lower().split(" ")
+            if any(word in text_array for word in kw):
+                return self.text.lower()
 
     # returns a dictionary of {cur: <prefix> , value: <dollar amt> }
     # eg. {cur: $ , value: 5.00 }
