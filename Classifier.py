@@ -67,6 +67,51 @@ class Classifier:
         self.save_model(pickle.dumps(classifier), "rf_model")
 
     @classmethod
+    def get_data_and_labels(cls, invoice_list):
+        number_of_non_others_tokens = 0
+        number_of_others_tokens = 0
+        OTHERS_SCALING_FACTOR = 0.3  # Maximum percentage of others tokens
+
+        feature_selection_strings = ["vert_align", "hori_align", "contains", "rel_dist"]
+
+        def get_feature_list(token, invoice_page, feature_selection_strings):
+            features = FeatureEngine.create_features(token, invoice_page)
+            all_features = []
+            for selection_string in feature_selection_strings:
+                sel_features = [v for k, v in features.items() if selection_string in k]
+                all_features.extend(sel_features)
+            print(all_features)
+            return all_features
+
+        data = []
+        labels = []
+        for invoice in invoice_list:
+            for invoice_page in invoice.pages:
+                if invoice_page.grouped_tokens:
+                    for token in invoice_page.grouped_tokens:
+                        if token.category != "Others":
+                            number_of_non_others_tokens += 1
+                            data.append(
+                                get_feature_list(
+                                    token, invoice_page, feature_selection_strings
+                                )
+                            )
+                            labels.append(token.category)
+                        elif (
+                            number_of_others_tokens
+                            < number_of_non_others_tokens * OTHERS_SCALING_FACTOR
+                        ):
+                            number_of_others_tokens += 1
+                            data.append(
+                                get_feature_list(
+                                    token, invoice_page, feature_selection_strings
+                                )
+                            )
+                            labels.append(token.category)
+
+        return data, labels
+
+    @classmethod
     def create_train_and_test_packet(
         cls, pathname: str, percentage_train: float = 0.8, verbose: bool = False
     ):
@@ -76,45 +121,8 @@ class Classifier:
         train_invoices = invoices[:splitting_point]
         test_invoices = invoices[splitting_point:]
 
-        def get_data_and_labels(invoice_list):
-            number_of_non_others_tokens = 0
-            number_of_others_tokens = 0
-            OTHERS_SCALING_FACTOR = 0.3  # Maximum percentage of others tokens
-
-            data = []
-            labels = []
-            for invoice in invoice_list:
-                for invoice_page in invoice.pages:
-                    if invoice_page.grouped_tokens:
-                        for token in invoice_page.grouped_tokens:
-                            if token.category != "Others":
-                                number_of_non_others_tokens += 1
-                                data.append(
-                                    list(
-                                        FeatureEngine.create_features(
-                                            token, invoice_page
-                                        ).values()
-                                    )
-                                )
-                                labels.append(token.category)
-                            elif (
-                                number_of_others_tokens
-                                < number_of_non_others_tokens * OTHERS_SCALING_FACTOR
-                            ):
-                                number_of_others_tokens += 1
-                                data.append(
-                                    list(
-                                        FeatureEngine.create_features(
-                                            token, invoice_page
-                                        ).values()
-                                    )
-                                )
-                                labels.append(token.category)
-
-            return data, labels
-
-        train_data, train_labels = get_data_and_labels(train_invoices)
-        test_data, test_labels = get_data_and_labels(test_invoices)
+        train_data, train_labels = cls.get_data_and_labels(train_invoices)
+        test_data, test_labels = cls.get_data_and_labels(test_invoices)
 
         return {
             "train_data": train_data,
@@ -127,7 +135,7 @@ class Classifier:
         # mlp sensitive to feature scaling, plus NN requires this so we standardise scaling first
         scaler = StandardScaler()
         scaler.fit(data)
-        data = scaler.transform(data)
+        # data = scaler.transform(data)
         labels = self.label_encoder.fit_transform(labels)
         # labels = scaler.transform(labels)
         """ Used to train a specific model """
@@ -144,25 +152,45 @@ class Classifier:
         """ Predicts the classification of a token using a model """
         if not self.models[model_name]:
             if os.path.exists(model_name):
-                loaded_model = pickle.load(open(model_file, "rb"))
-                result = loaded_model.predict(input_features)
+                model = pickle.load(open(model_name, "rb"))
             else:
                 raise Exception(
                     "The model either has not been trained, or has not been loaded correctly. Call the train() method, and check if the model is in the correct directory"
                 )
         else:
             model = self.models[model_name]
-            return model.predict(input_features)
+
+        return model.predict(input_features)
 
     def prediction_summary(self, predictions, labels):
         fmt = "{:<8}{:<30}{}"
         num_correct = 0
+        correct_counts_per_category = {k: 0 for k in labels}
+        category_instances = {k: 0 for k in labels}
 
-        print(fmt.format("", "Prediction", "Actual"))
+        print(fmt.format(" ", "Prediction", "Actual"))
         for i, (prediction, label) in enumerate(zip(predictions, labels)):
             print(fmt.format(i, prediction, label))
             if prediction == label:
                 num_correct += 1
+                correct_counts_per_category[label] = (
+                    correct_counts_per_category[label] + 1
+                )
+            category_instances[label] = category_instances[label] + 1
 
         print("")
-        print("Accuracy:", str(num_correct / len(predictions)) + "%")
+        print("==========================================")
+        print("Overall Accuracy:", str(num_correct * 100 / len(predictions)) + "%")
+        print("==========================================")
+        print(fmt.format("", "Category", "Accuracy"))
+        for category in category_instances:
+            print(
+                fmt.format(
+                    "",
+                    category,
+                    correct_counts_per_category[category]
+                    * 100
+                    / category_instances[category],
+                )
+            )
+
