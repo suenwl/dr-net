@@ -28,7 +28,9 @@ for token in page.grouped_tokens:
     print(" ")
 """
 #%% Demo 2: Print tokens grouped by blocks
-for i, block in page.get_tokens_by_block().items():
+#for i, block in page.get_tokens_by_block().items():
+
+for i, block in page.tokens_by_block_and_line.items():
     print(block)
     print(" ")
 """

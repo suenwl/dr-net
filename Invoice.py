@@ -160,14 +160,14 @@ class InvoicePage:
         )
 
         return filtered_tokens
-
+    ''' deprecated for now
     def remove_stopwords(self):
         if self.tokens:
             stopwords_set = set(stopwords.words("english"))
             self.tokens_no_stopwords = list(
                 filter(lambda t: t.text not in stopwords_set, self.tokens)
             )
-
+    '''
     def get_company_name(self):
         if not self.tokens_by_block:
             self.get_tokens_by_block()

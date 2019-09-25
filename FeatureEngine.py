@@ -91,7 +91,7 @@ class FeatureEngine:
                 return True
             return False
 
-        # checks if two tokens are aligned vertically within a margin of error (checks midpoint, top boundary, bottom boundary)
+        # checks if two tokens are aligned horizontally within a margin of error (checks midpoint, top boundary, bottom boundary)
         def is_hori_aligned(t1, t2, moe):
             if abs(t1.coordinates["y"] - t2.coordinates["y"]) < moe:
                 return True
@@ -131,6 +131,29 @@ class FeatureEngine:
             token.coordinates["x"] + token.coordinates["width"]
         )
 
+        # distance to boundaries of outermost text on page (tokens nearest to edge of page)
+        min_x = math.inf
+        min_y = math.inf
+        max_y = 0
+        max_x = 0
+        for t in invoicePage.grouped_tokens:
+            if t.coordinates["x"] < min_x:
+                min_x = t.coordinates["x"]
+            if t.coordinates["y"] < min_y:
+                min_y = t.coordinates["y"]
+            if t.coordinates["x"] + t.coordinates["width"] > max_x:
+                max_x = t.coordinates["x"] + t.coordinates["width"]
+            if t.coordinates["y"] + t.coordinates["height"] > max_y:
+                max_y = t.coordinates["y"] + t.coordinates["height"]
+        features["dist_top_outer"] = token.coordinates["y"] - min_x
+        features["dist_left_outer"] = token.coordinates["x"] - min_y
+        features["dist_bottom_outer"] = max_y - (
+            token.coordinates["y"] + token.coordinates["height"]
+        )
+        features["dist_right_outer"] = max_x - (
+            token.coordinates["x"] + token.coordinates["width"]
+        )
+
         # relative size of token box compared to page
         features["rel_size_page_x"] = token.coordinates["width"] / invoicePage.size["x"]
         features["rel_size_page_y"] = (
@@ -164,64 +187,74 @@ class FeatureEngine:
         perc_w = 0
         perc_h = 0
         for t in invoicePage.grouped_tokens:
-            if t.coordinates["width"] < token.coordinates["width"]:
-                perc_w += 1
-            if t.coordinates["height"] < token.coordinates["height"]:
-                perc_h += 1
+            if t is not token:
+                if t.coordinates["width"] < token.coordinates["width"]:
+                    perc_w += 1
+                if t.coordinates["height"] < token.coordinates["height"]:
+                    perc_h += 1
         features["percentile_width"] = perc_w / len(invoicePage.grouped_tokens)
         features["percentile_height"] = perc_h / len(invoicePage.grouped_tokens)
 
         # boolean if token contains fields
-        features["contains_date"] = True if token.date_values else False
-        features["contains_currency"] = True if token.currency else False
-        features["contains_address"] = True if token.address else False
-        features["contains_num_label"] = True if token.num_lable else False
-        features["contains_total_label"] = True if token.total_label else False
-        features["contains_date_label"] = True if token.date_label else False
-        features["contains_digit"] = True if token.contains_digit else False
+        features["contains_date"] = 0 if token.date_values else 1
+        features["contains_currency"] = 0 if token.currency else 1
+        features["contains_address"] = 0 if token.address else 1
+        features["contains_num_label"] = 0 if token.num_label else 1
+        features["contains_total_label"] = 0 if token.total_label else 1
+        features["contains_date_label"] = 0 if token.date_label else 1
+        features["contains_digit"] = 0 if token.contains_digit else 1
 
         # boolean if aligned with selected tokens
         moe = 10  # arbitary 10 pixle margin of error
-        features["vert_align_to_cell_w_date"] = False
-        features["vert_align_to_cell_w_currency"] = False
-        features["vert_align_to_cell_w_address"] = False
-        features["vert_align_to_cell_w_datelabel"] = False
-        features["vert_align_to_cell_w_numlabel"] = False
-        features["vert_align_to_cell_w_totallabel"] = False
-        features["vert_align_to_cell_w_digit"] = False
+        features["vert_align_to_cell_w_date"] = 0
+        features["vert_align_to_cell_w_currency"] = 0
+        features["vert_align_to_cell_w_address"] = 0
+        features["vert_align_to_cell_w_datelabel"] = 0
+        features["vert_align_to_cell_w_numlabel"] = 0
+        features["vert_align_to_cell_w_totallabel"] = 0
+        features["vert_align_to_cell_w_digit"] = 0
+
+        features["hori_align_to_cell_w_date"] = 0
+        features["hori_align_to_cell_w_currency"] = 0
+        features["hori_align_to_cell_w_address"] = 0
+        features["hori_align_to_cell_w_datelabel"] = 0
+        features["hori_align_to_cell_w_numlabel"] = 0
+        features["hori_align_to_cell_w_totallabel"] = 0
+        features["hori_align_to_cell_w_digit"] = 0
 
         for t in invoicePage.grouped_tokens:
-            if is_vert_aligned(t, token, moe):
-                if t.date_values:
-                    features["vert_align_to_cell_w_date"] = True
-                if t.currency:
-                    features["vert_align_to_cell_w_currency"] = True
-                if t.address:
-                    features["vert_align_to_cell_w_address"] = True
-                if t.date_label:
-                    features["vert_align_to_cell_w_datelabel"] = True
-                if t.num_lable:
-                    features["vert_align_to_cell_w_numlabel"] = True
-                if t.total_label:
-                    features["vert_align_to_cell_w_totallabel"] = True
-                if t.contains_digit:
-                    features["vert_align_to_cell_w_digit"] = True
+            if t is not token:
+                if is_vert_aligned(t, token, moe):
+                    if t.date_values:
+                        features["vert_align_to_cell_w_date"] = 1
+                    if t.currency:
+                        features["vert_align_to_cell_w_currency"] = 1
+                    if t.address:
+                        features["vert_align_to_cell_w_address"] = 1
+                    if t.date_label:
+                        features["vert_align_to_cell_w_datelabel"] = 1
+                    if t.num_label:
+                        features["vert_align_to_cell_w_numlabel"] = 1
+                    if t.total_label:
+                        features["vert_align_to_cell_w_totallabel"] = 1
+                    if t.contains_digit:
+                        features["vert_align_to_cell_w_digit"] = 1
 
-            if is_hori_aligned(t, token, moe):
-                if t.date_values:
-                    features["hori_align_to_cell_w_date"] = True
-                if t.currency:
-                    features["hori_align_to_cell_w_currency"] = True
-                if t.address:
-                    features["hori_align_to_cell_w_address"] = True
-                if t.date_label:
-                    features["hori_align_to_cell_w_datelabel"] = True
-                if t.num_lable:
-                    features["hori_align_to_cell_w_numlabel"] = True
-                if t.total_label:
-                    features["hori_align_to_cell_w_totallabel"] = True
-                if t.contains_digit:
-                    features["hori_align_to_cell_w_digit"] = True
+                if is_hori_aligned(t, token, moe):
+                    if t.date_values:
+                        features["hori_align_to_cell_w_date"] = 1
+                    if t.currency:
+                        features["hori_align_to_cell_w_currency"] = 1
+                    if t.address:
+                        features["hori_align_to_cell_w_address"] = 1
+                    if t.date_label:
+                        features["hori_align_to_cell_w_datelabel"] = 1
+                    if t.num_label:
+                        features["hori_align_to_cell_w_numlabel"] = 1
+                    if t.total_label:
+                        features["hori_align_to_cell_w_totallabel"] = 1
+                    if t.contains_digit:
+                        features["hori_align_to_cell_w_digit"] = 1
 
         # dist to nearest cell with field (inf if no field in page)
         features["dist_nearest_cell_w_date"] = math.inf
@@ -233,21 +266,22 @@ class FeatureEngine:
         features["dist_nearest_cell_w_digit"] = math.inf
 
         for t in invoicePage.grouped_tokens:
-            dist = calc_min_dist(t, token)
-            if t.date_values and dist < features["dist_nearest_cell_w_date"]:
-                features["dist_nearest_cell_w_date"] = dist
-            if t.currency and dist < features["dist_nearest_cell_w_currency"]:
-                features["dist_nearest_cell_w_currency"] = dist
-            if t.address and dist < features["dist_nearest_cell_w_address"]:
-                features["dist_nearest_cell_w_address"] = dist
-            if t.date_label and dist < features["dist_nearest_cell_w_datelabel"]:
-                features["dist_nearest_cell_w_datelabel"] = dist
-            if t.num_lable and dist < features["dist_nearest_cell_w_numlabel"]:
-                features["dist_nearest_cell_w_numlabel"] = dist
-            if t.total_label and dist < features["dist_nearest_cell_w_totallabel"]:
-                features["dist_nearest_cell_w_totallabel"] = dist
-            if t.contains_digit and dist < features["dist_nearest_cell_w_digit"]:
-                features["dist_nearest_cell_w_digit"] = dist
+            if t is not token:
+                dist = calc_min_dist(t, token)
+                if t.date_values and dist < features["dist_nearest_cell_w_date"]:
+                    features["dist_nearest_cell_w_date"] = dist
+                if t.currency and dist < features["dist_nearest_cell_w_currency"]:
+                    features["dist_nearest_cell_w_currency"] = dist
+                if t.address and dist < features["dist_nearest_cell_w_address"]:
+                    features["dist_nearest_cell_w_address"] = dist
+                if t.date_label and dist < features["dist_nearest_cell_w_datelabel"]:
+                    features["dist_nearest_cell_w_datelabel"] = dist
+                if t.num_label and dist < features["dist_nearest_cell_w_numlabel"]:
+                    features["dist_nearest_cell_w_numlabel"] = dist
+                if t.total_label and dist < features["dist_nearest_cell_w_totallabel"]:
+                    features["dist_nearest_cell_w_totallabel"] = dist
+                if t.contains_digit and dist < features["dist_nearest_cell_w_digit"]:
+                    features["dist_nearest_cell_w_digit"] = dist
 
         features["rel_dist_nearest_cell_w_date"] = (
             features["dist_nearest_cell_w_date"] / invoice_diag
@@ -281,6 +315,7 @@ class FeatureEngine:
         """
 
         return features
+
     @classmethod
     def create_min_distance_feature(self, token: Token, target_tokens: List[Token]):
         """Returns a float which represents the min distance from the token to any of the tokens in the target_tokens list"""

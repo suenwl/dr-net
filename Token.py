@@ -75,7 +75,13 @@ class Token:
             "cres",
             "singapore",
             "grove",
-            "grv"
+            "grv",
+            "lorong",
+            "lor",
+            "valley",
+            "view",
+            "bukit",
+            "tanjong",
         ]
         if self.text:
             text_array = self.text.lower().split(" ")
@@ -94,7 +100,20 @@ class Token:
 
     # returns string for description of number, eg. account number, invoice number
     def get_num_label(self):
-        kw = ["no.", "no:", "number", "num", "No.", "No:"]
+        kw = [
+            "no.",
+            "no:",
+            "number",
+            "num",
+            "No.",
+            "No:" "No.:",
+            "NO",
+            "Invoice #:",
+            "NO.",
+            "Number",
+            "ID",
+            "Membership:",
+        ]
         if self.text:
             text_array = self.text.split(" ")
             for w in kw:
@@ -176,6 +195,7 @@ class Token:
                     if month in text_list[0]:
                         dates.append(text_list[0])
         return dates
+
     def set_category(self, category: str):
         self.category = category
 
