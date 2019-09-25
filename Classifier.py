@@ -20,6 +20,7 @@ class Classifier:
             "Naive Bayes": None,
             "Random Forest": None,
         }
+        self.label_encoder = LabelEncoder()
 
     def save_model(self, model: str, file_name: str):
         with open(file_name, "wb") as text_file:
@@ -126,10 +127,7 @@ class Classifier:
         scaler = StandardScaler()
         scaler.fit(data)
         data = scaler.transform(data)
-        label_encoder = LabelEncoder()
-        print(labels)
-        labels = label_encoder.fit_transform(labels)
-        print(labels)
+        labels = self.label_encoder.fit_transform(labels)
         # labels = scaler.transform(labels)
         """ Used to train a specific model """
         if model_name == "Support Vector Machine":
@@ -154,3 +152,16 @@ class Classifier:
         else:
             model = self.models[model_name]
             return model.predict(input_features)
+
+    def prediction_summary(self, predictions, labels):
+        fmt = "{:<8}{:<30}{}"
+        num_correct = 0
+
+        print(fmt.format("", "Prediction", "Actual"))
+        for i, (prediction, label) in enumerate(zip(predictions, labels)):
+            print(fmt.format(i, prediction, label))
+            if prediction == label:
+                num_correct += 1
+
+        print("")
+        print("Accuracy:", str(num_correct / len(predictions)) + "%")
