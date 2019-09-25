@@ -38,7 +38,7 @@ class Classifier:
         classifier.fit(data, labels)
         self.models["Support Vector Machine"] = classifier
         # save the model to disk
-        self.save_model(pickle.dump(classifier), "svm_model")
+        self.save_model(pickle.dumps(classifier), "svm_model")
 
     def train_neural_network(self, data, labels):
         # multi-layer perceptron (MLP) algorithm
@@ -68,10 +68,58 @@ class Classifier:
     def create_train_and_test_packet(
         cls, pathname: str, percentage_train: float = 0.8, verbose: bool = False
     ):
-        invoices = FeatureEngine.map_labels_to_invoice_OCR(pathname, verbose)
+        invoices = FeatureEngine.map_labels_to_invoice_OCR(pathname, True, verbose)
         random.shuffle(invoices)
         splitting_point = int(len(invoices) * 0.8)
-        return {"train": invoices[:splitting_point], "test": invoices[splitting_point:]}
+        train_invoices = invoices[:splitting_point]
+        test_invoices = invoices[splitting_point:]
+
+        def get_data_and_labels(invoice_list):
+            number_of_non_others_tokens = 0
+            number_of_others_tokens = 0
+            OTHERS_SCALING_FACTOR = 0.3  # Maximum percentage of others tokens
+
+            data = []
+            labels = []
+            for invoice in invoice_list:
+                for invoice_page in invoice.pages:
+                    if invoice_page.grouped_tokens:
+                        for token in invoice_page.grouped_tokens:
+                            if token.category != "Others":
+                                number_of_non_others_tokens += 1
+                                data.append(
+                                    list(
+                                        FeatureEngine.create_features(
+                                            token, invoice_page
+                                        ).values()
+                                    )
+                                )
+                                labels.append(token.category)
+                            elif (
+                                number_of_others_tokens
+                                < number_of_non_others_tokens * OTHERS_SCALING_FACTOR
+                            ):
+                                number_of_others_tokens += 1
+                                data.append(
+                                    list(
+                                        FeatureEngine.create_features(
+                                            token, invoice_page
+                                        ).values()
+                                    )
+                                )
+                                labels.append(token.category)
+
+            return data, labels
+
+        train_data, train_labels = get_data_and_labels(train_invoices)
+        test_data, test_labels = get_data_and_labels(test_invoices)
+
+        return {
+            "train_data": train_data,
+            "train_labels": train_labels,
+            "test_data": test_data,
+            "test_labels": test_labels,
+        }
 
     def train(self, model_name: str, data, labels):
         # mlp sensitive to feature scaling, plus NN requires this so we standardise scaling first
@@ -79,7 +127,9 @@ class Classifier:
         scaler.fit(data)
         data = scaler.transform(data)
         label_encoder = LabelEncoder()
+        print(labels)
         labels = label_encoder.fit_transform(labels)
+        print(labels)
         # labels = scaler.transform(labels)
         """ Used to train a specific model """
         if model_name == "Support Vector Machine":
@@ -93,9 +143,8 @@ class Classifier:
 
     def predict(self, input_features, model_name: str):
         """ Predicts the classification of a token using a model """
-        if not self.models["model"]:
-            model_file = model_name + ".sav"
-            if os.path.exists(model_file):
+        if not self.models[model_name]:
+            if os.path.exists(model_name):
                 loaded_model = pickle.load(open(model_file, "rb"))
                 result = loaded_model.predict(input_features)
             else:

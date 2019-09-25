@@ -9,40 +9,46 @@ from Invoice import Invoice, InvoicePage
 
 class FeatureEngine:
     @classmethod
-    def map_labels_to_invoice_OCR(self, data_path: str, verbose: bool = False):
+    def map_labels_to_invoice_OCR(self, data_path: str, autoload=False, verbose: bool = False):
         # This tuple represents the number of pages to do OCR for for each invoice. Eg. (2,1) represents do OCR for the first 2 pages, and for the last page
         RANGE_OF_PAGES_FOR_OCR = (2, 2)
         invoices = []
         for filename in os.listdir(data_path):
             if filename.endswith(".pdf"):
-
-                # First check if json tags are present. If they aren't, skip this pdf
-                if not os.path.exists(data_path + "/" + filename[:-4] + ".json"):
-                    print(
-                        "Warning: json tags for",
-                        filename,
-                        "does not exist. Check if they are in the same folder. Skipping this pdf",
-                    )
-                    continue
-
-                # Next, do OCR for the relevant pages in the invoice
                 invoice = Invoice(data_path + "/" + filename)
-                if verbose:
-                    print("Processing:", invoice.readable_name)
 
-                if invoice.length() < sum(RANGE_OF_PAGES_FOR_OCR):
-                    for page in invoice.pages:
-                        page.do_OCR(verbose=verbose)
-                else:
-                    for page in invoice.pages[: RANGE_OF_PAGES_FOR_OCR[0]]:
-                        page.do_OCR(verbose=verbose)
-                    for page in invoice.pages[-RANGE_OF_PAGES_FOR_OCR[1] :]:
-                        page.do_OCR(verbose=verbose)
+                if autoload:
+                    loaded = invoice.load_data()
+                    if loaded:
+                        invoices.append(invoice)
 
-                # Try mapping labels
-                invoice.map_labels(verbose=verbose)
-                invoices.append(invoice)
-                invoice.save_data()
+                    else:
+                        # First check if json tags are present. If they aren't, skip this pdf
+                        if not os.path.exists(data_path + "/" + filename[:-4] + ".json"):
+                            print(
+                                "Warning: json tags for",
+                                filename,
+                                "does not exist. Check if they are in the same folder. Skipping this pdf",
+                            )
+                            continue
+
+                        # Next, do OCR for the relevant pages in the invoice
+                        if verbose:
+                            print("Processing:", invoice.readable_name)
+
+                        if invoice.length() < sum(RANGE_OF_PAGES_FOR_OCR):
+                            for page in invoice.pages:
+                                page.do_OCR(verbose=verbose)
+                        else:
+                            for page in invoice.pages[: RANGE_OF_PAGES_FOR_OCR[0]]:
+                                page.do_OCR(verbose=verbose)
+                            for page in invoice.pages[-RANGE_OF_PAGES_FOR_OCR[1] :]:
+                                page.do_OCR(verbose=verbose)
+
+                        # Try mapping labels
+                        invoice.map_labels(verbose=verbose)
+                        invoices.append(invoice)
+                        invoice.save_data()
 
         return invoices
 

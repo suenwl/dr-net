@@ -6,6 +6,7 @@ from Token import Token
 from util import convert_pdf_to_image
 import json
 import re
+import os
 
 
 class Invoice:
@@ -36,11 +37,15 @@ class Invoice:
         if not file_name:
             file_path = file_path_stem + self.readable_name[:-4] + "-savefile.json"
 
+        if not os.path.exists(file_path):  # No save file
+            return False
+
         with open(file_path, "r") as save_file:
             data = json.load(save_file)
             for i, page_data in enumerate(data["pages"]):
                 page = self.pages[i]
                 page.load_data(page_data)
+            return True
 
     def get_all_tokens(self):
         ocr_engine = OCREngine()
@@ -92,7 +97,8 @@ class Invoice:
                         "Setting category as",
                         category_label,
                     )
-                token_to_label.set_category(category_label)
+                if token_to_label:  # If a token was found
+                    token_to_label.set_category(category_label)
 
 
 class InvoicePage:
@@ -124,7 +130,14 @@ class InvoicePage:
         ):  # If not all data in data_packet is present
             return  # We probably didn't do OCR for this page previously, so just return
 
-        create_tokens_from_dict = lambda dictionary: Token(**dictionary)
+        create_tokens_from_dict = lambda dictionary: Token(
+            **{
+                k: v
+                for k, v in dictionary.items()
+                if k
+                in ["text", "coordinates", "confidence", "token_structure", "category"]
+            }
+        )
 
         self.tokens = list(map(create_tokens_from_dict, data_packet["tokens"]))
         self.grouped_tokens = list(
@@ -180,12 +193,13 @@ class InvoicePage:
             max_overlap = max(max_overlap, percentage_overlap)
             if percentage_overlap > 0:  # Temporarily setting this to any overlap
                 return token
-        raise Exception(
-            "No significant overlap between token and label at",
-            coordinates,
-            "was found. Maximum overlap was",
-            max_overlap,
-        )
+        return False  # No overlapping tokens found
+        # raise Exception(
+        #     "No significant overlap between token and label at",
+        #     coordinates,
+        #     "was found. Maximum overlap was",
+        #     max_overlap,
+        # )
 
     def draw_bounding_boxes(
         self, detail="group", tags=True
