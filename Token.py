@@ -48,15 +48,21 @@ class Token:
             return False
 
     def get_date_label(self):
-        kw = ["date", "Date"]
+        kw = ["invoice", "bill", "issued", "receipt"]
         if self.text:
-            return any(word in self.text.lower() for word in kw)
+            if "date" in self.text.lower():
+                if any(word in self.text.lower() for word in kw):
+                    return (
+                        self.text.lower()
+                    )  # Return the entire text if it is specified that it is a invoice date
+                else:
+                    return "date"  # else just return date
 
     def get_period_label(self):
         kw = ["period"]
         if self.text:
             return any(word in self.text.lower() for word in kw)
-    
+
     def get_company(self):
         kw = ["limited", "limited.", "ltd", "ltd."]
         if self.text:
