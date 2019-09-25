@@ -322,26 +322,26 @@ class FeatureEngine:
                 if t.contains_digit and dist < features["dist_nearest_cell_w_digit"]:
                     features["dist_nearest_cell_w_digit"] = dist
 
-        features["rel_dist_nearest_cell_w_date"] = (
-            features["dist_nearest_cell_w_date"] / invoice_diag
+        features["rel_dist_nearest_cell_w_date"] = min(
+            features["dist_nearest_cell_w_date"] / invoice_diag,1
         )
-        features["rel_dist_nearest_cell_w_currency"] = (
-            features["dist_nearest_cell_w_currency"] / invoice_diag
+        features["rel_dist_nearest_cell_w_currency"] = min(
+            features["dist_nearest_cell_w_currency"] / invoice_diag,1
         )
-        features["rel_dist_nearest_cell_w_address"] = (
-            features["dist_nearest_cell_w_address"] / invoice_diag
+        features["rel_dist_nearest_cell_w_address"] = min(
+            features["dist_nearest_cell_w_address"] / invoice_diag,1
         )
-        features["rel_dist_nearest_cell_w_datelabel"] = (
-            features["dist_nearest_cell_w_datelabel"] / invoice_diag
+        features["rel_dist_nearest_cell_w_datelabel"] = min(
+            features["dist_nearest_cell_w_datelabel"] / invoice_diag,1
         )
-        features["rel_dist_nearest_cell_w_numlabel"] = (
-            features["dist_nearest_cell_w_numlabel"] / invoice_diag
+        features["rel_dist_nearest_cell_w_numlabel"] = min(
+            features["dist_nearest_cell_w_numlabel"] / invoice_diag,1
         )
-        features["rel_dist_nearest_cell_w_totallabel"] = (
-            features["dist_nearest_cell_w_totallabel"] / invoice_diag
+        features["rel_dist_nearest_cell_w_totallabel"] = min(
+            features["dist_nearest_cell_w_totallabel"] / invoice_diag,1
         )
-        features["rel_dist_nearest_cell_w_digit"] = (
-            features["dist_nearest_cell_w_digit"] / invoice_diag
+        features["rel_dist_nearest_cell_w_digit"] = min(
+            features["dist_nearest_cell_w_digit"] / invoice_diag,1
         )
 
         """
