@@ -5,7 +5,9 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder
 import pickle
+import os
 
 
 class Classifier:
@@ -26,10 +28,13 @@ class Classifier:
         #original line without use of grid search to optimise parameters
         #classifier = svm.SVC(gamma=0.001, C=100.0)
         svc = svm.SVC()
-        clf = GridSearchCV(svc, parameters, cv=5)
+        classifier = GridSearchCV(svc, parameters, cv=5)
         classifier.fit(data, labels)
         self.models["Support Vector Machine"] = classifier
-        self.save_model(pickle.dumps(classifier), "svm_model")
+        # save the model to disk
+        pickle.dump(classifier, open(filename = 'svm_model.sav', 'wb'))
+        #previous way of saving model
+        #self.save_model(pickle.dumps(classifier), "svm_model")
 
     def train_neural_network(self, data, labels):
         # multi-layer perceptron (MLP) algorithm
@@ -56,8 +61,10 @@ class Classifier:
         #mlp sensitive to feature scaling, plus NN requires this so we standardise scaling first
         scaler = StandardScaler()
         scaler.fit(data)  
-        data = scaler.transform(data)  
-        labels = scaler.transform(labels) 
+        data = scaler.transform(data) 
+        label_encoder = LabelEncoder()
+        labels = label_encoder.fit_transform(labels)
+        #labels = scaler.transform(labels) 
         """ Used to train a specific model """
         if model_name == "Support Vector Machine":
             self.train_support_vector_machine(data, labels)
@@ -71,7 +78,12 @@ class Classifier:
     def predict(self, input_features, model_name: str):
         """ Predicts the classification of a token using a model """
         if not self.models["model"]:
-            raise Exception(
+            model_file = model_name+".sav"
+            if os.path.exists(model_file):
+                loaded_model = pickle.load(open(model_file, 'rb'))
+                result = loaded_model.predict(input_features)
+            else:
+                raise Exception(
                 "The model either has not been trained, or has not been loaded correctly. Call the train() method, and check if the model is in the correct directory"
             )
         else:

@@ -132,8 +132,8 @@ class FeatureEngine:
         )
 
         # distance to boundaries of outermost text on page (tokens nearest to edge of page)
-        min_x = math.inf
-        min_y = math.inf
+        min_x = 99999#math.inf
+        min_y = 99999#math.inf
         max_y = 0
         max_x = 0
         for t in invoicePage.grouped_tokens:
@@ -257,13 +257,13 @@ class FeatureEngine:
                         features["hori_align_to_cell_w_digit"] = 1
 
         # dist to nearest cell with field (inf if no field in page)
-        features["dist_nearest_cell_w_date"] = math.inf
-        features["dist_nearest_cell_w_currency"] = math.inf
-        features["dist_nearest_cell_w_address"] = math.inf
-        features["dist_nearest_cell_w_datelabel"] = math.inf
-        features["dist_nearest_cell_w_numlabel"] = math.inf
-        features["dist_nearest_cell_w_totallabel"] = math.inf
-        features["dist_nearest_cell_w_digit"] = math.inf
+        features["dist_nearest_cell_w_date"] = 99999#math.inf
+        features["dist_nearest_cell_w_currency"] = 99999#math.inf
+        features["dist_nearest_cell_w_address"] = 99999#math.inf
+        features["dist_nearest_cell_w_datelabel"] = 99999#math.inf
+        features["dist_nearest_cell_w_numlabel"] = 99999#math.inf
+        features["dist_nearest_cell_w_totallabel"] = 99999#math.inf
+        features["dist_nearest_cell_w_digit"] = 99999#math.inf
 
         for t in invoicePage.grouped_tokens:
             if t is not token:
