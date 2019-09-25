@@ -100,25 +100,12 @@ class Token:
 
     # returns string for description of number, eg. account number, invoice number
     def get_num_label(self):
-        kw = [
-            "no.",
-            "no:",
-            "number",
-            "num",
-            "No.",
-            "No:" "No.:",
-            "NO",
-            "Invoice #:",
-            "NO.",
-            "Number",
-            "ID",
-            "Membership:",
-        ]
+        kw = ["no.", "no:", "no.:", "number", "num", "#", "#:"]
         if self.text:
-            text_array = self.text.split(" ")
+            text_array = self.text.lower().split(" ")
             for w in kw:
                 if w in text_array and text_array.index(w) > 0:
-                    return text_array[text_array.index(w) - 1]
+                    return self.text
 
     # returns a dictionary of {cur: <prefix> , value: <dollar amt> }
     # eg. {cur: $ , value: 5.00 }

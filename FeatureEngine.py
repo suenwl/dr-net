@@ -213,6 +213,9 @@ class FeatureEngine:
         features["vert_align_to_cell_w_numlabel"] = 0
         features["vert_align_to_cell_w_totallabel"] = 0
         features["vert_align_to_cell_w_digit"] = 0
+        features["vert_align_to_cell_w_invoicenum_label"] = 0
+        features["vert_align_to_cell_w_accountnum_label"] = 0
+        features["vert_align_to_cell_w_ponum_label"] = 0
 
         features["hori_align_to_cell_w_date"] = 0
         features["hori_align_to_cell_w_currency"] = 0
@@ -221,6 +224,10 @@ class FeatureEngine:
         features["hori_align_to_cell_w_numlabel"] = 0
         features["hori_align_to_cell_w_totallabel"] = 0
         features["hori_align_to_cell_w_digit"] = 0
+        features["hori_align_to_cell_w_invoicenum_label"] = 0
+        features["hori_align_to_cell_w_accountnum_label"] = 0
+        features["hori_align_to_cell_w_ponum_label"] = 0
+        
 
         for t in invoicePage.grouped_tokens:
             if t is not token:
@@ -239,6 +246,13 @@ class FeatureEngine:
                         features["vert_align_to_cell_w_totallabel"] = 1
                     if t.contains_digit:
                         features["vert_align_to_cell_w_digit"] = 1
+                    if any(word in t.num_label for word in ["invoice","inv","receipt"]]):
+                        features["vert_align_to_cell_w_invoicenum_label"] = 1
+                    if any(word in t.num_label for word in ["account","acc","customer"]):
+                        features["vert_align_to_cell_w_accountnum_label"] = 1
+                    if any(word in t.num_label for word in ["po","sales"]):
+                        features["vert_align_to_cell_w_ponum_label"] = 1
+
 
                 if is_hori_aligned(t, token, moe):
                     if t.date_values:
@@ -255,6 +269,12 @@ class FeatureEngine:
                         features["hori_align_to_cell_w_totallabel"] = 1
                     if t.contains_digit:
                         features["hori_align_to_cell_w_digit"] = 1
+                    if any(word in t.num_label for word in ["invoice","inv","receipt"]]):
+                        features["hori_align_to_cell_w_invoicenum_label"] = 1
+                    if any(word in t.num_label for word in ["account","acc","customer"]):
+                        features["hori_align_to_cell_w_accountnum_label"] = 1
+                    if any(word in t.num_label for word in ["po","sales"]):
+                        features["hori_align_to_cell_w_ponum_label"] = 1
 
         # dist to nearest cell with field (inf if no field in page)
         features["dist_nearest_cell_w_date"] = math.inf
