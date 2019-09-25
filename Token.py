@@ -29,6 +29,8 @@ class Token:
         self.num_label = self.get_num_label()
         self.total_label = self.get_total_label()
         self.date_label = self.get_date_label()
+        self.period_label = self.get_period_label()
+        self.company = self.get_company()
         self.contains_digit = self.get_contains_digits()
 
     def __repr__(self):
@@ -49,6 +51,17 @@ class Token:
         kw = ["date", "Date"]
         if self.text:
             return any(word in self.text.lower() for word in kw)
+
+    def get_period_label(self):
+        kw = ["period"]
+        if self.text:
+            return any(word in self.text.lower() for word in kw)
+    
+    def get_company(self):
+        kw = ["limited", "limited.", "ltd", "ltd."]
+        if self.text:
+            if any(word in self.text.lower() for word in kw):
+                return self.text
 
     # tries to extract address from token
     def get_address(self):
