@@ -12,7 +12,7 @@ for filename in os.listdir():
             categories = json.load(save_file)
             for category in categories:
                 if category["category"] == "Amount (including GST)":
-                    category["category"] = "Total Amount"
+                    category["category"] = "Total amount"
                     new_categories.append(category)
                 elif category["category"] != "Amount (excluding GST)":
                     new_categories.append(category)
