@@ -142,8 +142,8 @@ class FeatureEngine:
         )
 
         # distance to boundaries of outermost text on page (tokens nearest to edge of page)
-        min_x = 99999#math.inf
-        min_y = 99999#math.inf
+        min_x = math.inf
+        min_y = math.inf
         max_y = 0
         max_x = 0
         for t in invoicePage.grouped_tokens:
@@ -296,13 +296,13 @@ class FeatureEngine:
                     
 
         # dist to nearest cell with field (inf if no field in page)
-        features["dist_nearest_cell_w_date"] = 99999#math.inf
-        features["dist_nearest_cell_w_currency"] = 99999#math.inf
-        features["dist_nearest_cell_w_address"] = 99999#math.inf
-        features["dist_nearest_cell_w_datelabel"] = 99999#math.inf
-        features["dist_nearest_cell_w_numlabel"] = 99999#math.inf
-        features["dist_nearest_cell_w_totallabel"] = 99999#math.inf
-        features["dist_nearest_cell_w_digit"] = 99999#math.inf
+        features["dist_nearest_cell_w_date"] = math.inf
+        features["dist_nearest_cell_w_currency"] = math.inf
+        features["dist_nearest_cell_w_address"] = math.inf
+        features["dist_nearest_cell_w_datelabel"] = math.inf
+        features["dist_nearest_cell_w_numlabel"] = math.inf
+        features["dist_nearest_cell_w_totallabel"] = math.inf
+        features["dist_nearest_cell_w_digit"] = math.inf
 
         for t in invoicePage.grouped_tokens:
             if t is not token:
@@ -322,27 +322,17 @@ class FeatureEngine:
                 if t.contains_digit and dist < features["dist_nearest_cell_w_digit"]:
                     features["dist_nearest_cell_w_digit"] = dist
 
-        features["rel_dist_nearest_cell_w_date"] = min(
-            features["dist_nearest_cell_w_date"] / invoice_diag,1
-        )
-        features["rel_dist_nearest_cell_w_currency"] = min(
-            features["dist_nearest_cell_w_currency"] / invoice_diag,1
-        )
-        features["rel_dist_nearest_cell_w_address"] = min(
-            features["dist_nearest_cell_w_address"] / invoice_diag,1
-        )
-        features["rel_dist_nearest_cell_w_datelabel"] = min(
-            features["dist_nearest_cell_w_datelabel"] / invoice_diag,1
-        )
-        features["rel_dist_nearest_cell_w_numlabel"] = min(
-            features["dist_nearest_cell_w_numlabel"] / invoice_diag,1
-        )
-        features["rel_dist_nearest_cell_w_totallabel"] = min(
-            features["dist_nearest_cell_w_totallabel"] / invoice_diag,1
-        )
-        features["rel_dist_nearest_cell_w_digit"] = min(
-            features["dist_nearest_cell_w_digit"] / invoice_diag,1
-        )
+        for feature in ["dist_nearest_cell_w_date","dist_nearest_cell_w_currency","dist_nearest_cell_w_address","dist_nearest_cell_w_datelabel","dist_nearest_cell_w_numlabel","dist_nearest_cell_w_totallabel","dist_nearest_cell_w_digit"]:
+            if math.isinf(features[feature]):
+                features[feature] = invoice_diag*0.75
+
+        features["rel_dist_nearest_cell_w_date"] = features["dist_nearest_cell_w_date"] / invoice_diag
+        features["rel_dist_nearest_cell_w_currency"] = features["dist_nearest_cell_w_currency"] / invoice_diag
+        features["rel_dist_nearest_cell_w_address"] = features["dist_nearest_cell_w_address"] / invoice_diag
+        features["rel_dist_nearest_cell_w_datelabel"] = features["dist_nearest_cell_w_datelabel"] / invoice_diag
+        features["rel_dist_nearest_cell_w_numlabel"] = features["dist_nearest_cell_w_numlabel"] / invoice_diag
+        features["rel_dist_nearest_cell_w_totallabel"] = features["dist_nearest_cell_w_totallabel"] / invoice_diag
+        features["rel_dist_nearest_cell_w_digit"] = features["dist_nearest_cell_w_digit"] / invoice_diag
 
         """
         features TODO:
