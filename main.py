@@ -5,14 +5,16 @@ from FeatureEngine import FeatureEngine
 from Invoice import Invoice
 from Token import Token
 from Classifier import Classifier
-from util import *
+from util import features_to_use
 
 print("Starting...")
 print("Loading invoices...")
-data = Classifier.create_train_and_test_packet(
+invoices = FeatureEngine.load_invoices_and_map_labels(
     "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data",
+    autoload=True,
     verbose=True,
 )
+data = Classifier.create_train_and_test_packet(invoices, features_to_use)
 
 classifier = Classifier()
 print("Training classifier...")
@@ -23,18 +25,4 @@ classifier.prediction_summary(
 )
 
 
-#%% Demo 2: Print tokens grouped by blocks
-"""
-for i, block in page.tokens_by_block_and_line.items():
-    print(block)
-    print(" ")
-"""
-#%% Demo 3: Print page
-# page.page.resize((600, 900))
-# page.draw_bounding_boxes("word")
-# print(list(map(lambda x :x.date_values,page.grouped_tokens)))
-# print(list(map(lambda x :x.get_currency(),page.grouped_tokens)))
-# print(list(map(lambda x :x.get_num_label(),page.grouped_tokens)))
-# print(list(map(lambda x :x.get_total_label(),page.grouped_tokens)))
-# print(list(map(lambda x :x.contains_digit,page.grouped_tokens)))
-# print(list(map(lambda x :[x.coordinates, x.text],page.grouped_tokens)))
+#%%
