@@ -6,7 +6,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import normalize
 from sklearn.preprocessing import LabelEncoder
 import pickle
 import os
@@ -35,7 +35,7 @@ class Classifier:
         }
         # original line without use of grid search to optimise parameters
         # classifier = svm.SVC(gamma=0.001, C=100.0)
-        svc = svm.SVC()
+        svc = svm.SVC(probability=True, verbose=True)
         classifier = GridSearchCV(svc, parameters, cv=5)
         classifier.fit(data, labels)
         self.models["Support Vector Machine"] = classifier
@@ -133,9 +133,9 @@ class Classifier:
 
     def train(self, model_name: str, data, labels):
         # mlp sensitive to feature scaling, plus NN requires this so we standardise scaling first
-        scaler = StandardScaler()
-        scaler.fit(data)
-        # data = scaler.transform(data)
+        data = normalize(data)
+        for i in range(10):
+            data[i]
         labels = self.label_encoder.fit_transform(labels)
         # labels = scaler.transform(labels)
         """ Used to train a specific model """
