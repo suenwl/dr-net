@@ -90,14 +90,14 @@ class Invoice:
                 page_number = label["page"]
                 page = self.get_page(page_number)
                 token_to_label = page.find_overlapping_token(coordinates)
-                if verbose:
-                    print(
-                        "FOUND TOKEN",
-                        token_to_label,
-                        "Setting category as",
-                        category_label,
-                    )
                 if token_to_label:  # If a token was found
+                    if verbose:
+                        print(
+                            "FOUND TOKEN",
+                            token_to_label,
+                            "Setting category as",
+                            category_label,
+                        )
                     token_to_label.set_category(category_label)
 
 

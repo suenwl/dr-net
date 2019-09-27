@@ -134,8 +134,6 @@ class Classifier:
     def train(self, model_name: str, data, labels):
         # mlp sensitive to feature scaling, plus NN requires this so we standardise scaling first
         data = normalize(data)
-        for i in range(10):
-            data[i]
         labels = self.label_encoder.fit_transform(labels)
         # labels = scaler.transform(labels)
         """ Used to train a specific model """
