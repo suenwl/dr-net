@@ -49,6 +49,8 @@ class FeatureEngine:
                         invoice.map_labels(verbose=verbose)
                         invoices.append(invoice)
                         invoice.save_data()
+                else:
+                    invoices.append(invoice)
 
         return invoices
 
