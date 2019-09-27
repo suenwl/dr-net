@@ -67,21 +67,14 @@ class Classifier:
         self.save_model(pickle.dumps(classifier), "rf_model")
 
     @classmethod
-    def get_data_and_labels(cls, invoice_list):
+    def get_data_and_labels(cls, invoice_list, features_to_use):
         number_of_non_others_tokens = 0
         number_of_others_tokens = 0
         OTHERS_SCALING_FACTOR = 0.3  # Maximum percentage of others tokens
 
-        feature_selection_strings = ["vert_align", "hori_align", "contains", "rel_dist"]
-
-        def get_feature_list(token, invoice_page, feature_selection_strings):
+        def get_feature_list(token, invoice_page):
             features = FeatureEngine.create_features(token, invoice_page)
-            all_features = []
-            for selection_string in feature_selection_strings:
-                sel_features = [v for k, v in features.items() if selection_string in k]
-                all_features.extend(sel_features)
-            print(all_features)
-            return all_features
+            return [v for k, v in features.items() if k in features_to_use]
 
         data = []
         labels = []
@@ -93,7 +86,7 @@ class Classifier:
                             number_of_non_others_tokens += 1
                             data.append(
                                 get_feature_list(
-                                    token, invoice_page, feature_selection_strings
+                                    token, invoice_page
                                 )
                             )
                             labels.append(token.category)
@@ -104,7 +97,7 @@ class Classifier:
                             number_of_others_tokens += 1
                             data.append(
                                 get_feature_list(
-                                    token, invoice_page, feature_selection_strings
+                                    token, invoice_page
                                 )
                             )
                             labels.append(token.category)
@@ -113,16 +106,17 @@ class Classifier:
 
     @classmethod
     def create_train_and_test_packet(
-        cls, pathname: str, percentage_train: float = 0.8, verbose: bool = False
+        cls, invoices, features_to_use, percentage_train: float = 0.8
     ):
-        invoices = FeatureEngine.map_labels_to_invoice_OCR(pathname, True, verbose)
         random.shuffle(invoices)
         splitting_point = int(len(invoices) * 0.8)
         train_invoices = invoices[:splitting_point]
         test_invoices = invoices[splitting_point:]
 
-        train_data, train_labels = cls.get_data_and_labels(train_invoices)
-        test_data, test_labels = cls.get_data_and_labels(test_invoices)
+        train_data, train_labels = cls.get_data_and_labels(
+            train_invoices, features_to_use
+        )
+        test_data, test_labels = cls.get_data_and_labels(test_invoices, features_to_use)
 
         return {
             "train_data": train_data,

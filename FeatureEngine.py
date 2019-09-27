@@ -9,7 +9,7 @@ from Invoice import Invoice, InvoicePage
 
 class FeatureEngine:
     @classmethod
-    def map_labels_to_invoice_OCR(self, data_path: str, autoload=False, verbose: bool = False):
+    def load_invoices_and_map_labels(self, data_path: str, autoload=False, verbose: bool = False):
         # This tuple represents the number of pages to do OCR for for each invoice. Eg. (2,1) represents do OCR for the first 2 pages, and for the last page
         RANGE_OF_PAGES_FOR_OCR = (2, 2)
         invoices = []
