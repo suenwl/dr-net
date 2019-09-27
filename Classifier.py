@@ -46,7 +46,7 @@ class Classifier:
         # multi-layer perceptron (MLP) algorithm
         # consider increasing neuron number to match number of features as data set
         classifier = MLPClassifier(
-            solver="lbfgs", alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1
+            solver="lbfgs", alpha=1e-5, hidden_layer_sizes=(30, 30), random_state=1
         )
         classifier.fit(data, labels)
         self.models["Neural Network"] = classifier
@@ -84,22 +84,14 @@ class Classifier:
                     for token in invoice_page.grouped_tokens:
                         if token.category != "Others":
                             number_of_non_others_tokens += 1
-                            data.append(
-                                get_feature_list(
-                                    token, invoice_page
-                                )
-                            )
+                            data.append(get_feature_list(token, invoice_page))
                             labels.append(token.category)
                         elif (
                             number_of_others_tokens
                             < number_of_non_others_tokens * OTHERS_SCALING_FACTOR
                         ):
                             number_of_others_tokens += 1
-                            data.append(
-                                get_feature_list(
-                                    token, invoice_page
-                                )
-                            )
+                            data.append(get_feature_list(token, invoice_page))
                             labels.append(token.category)
 
         return data, labels
