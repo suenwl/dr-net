@@ -324,9 +324,10 @@ class FeatureEngine:
                 if t.contains_digit and dist < features["dist_nearest_cell_w_digit"]:
                     features["dist_nearest_cell_w_digit"] = dist
 
+        DEFAULT_DISTANCE = 0.75 # This is arbitrary
         for feature in ["dist_nearest_cell_w_date","dist_nearest_cell_w_currency","dist_nearest_cell_w_address","dist_nearest_cell_w_datelabel","dist_nearest_cell_w_numlabel","dist_nearest_cell_w_totallabel","dist_nearest_cell_w_digit"]:
             if math.isinf(features[feature]):
-                features[feature] = invoice_diag*0.75
+                features[feature] = invoice_diag*DEFAULT_DISTANCE
 
         features["rel_dist_nearest_cell_w_date"] = features["dist_nearest_cell_w_date"] / invoice_diag
         features["rel_dist_nearest_cell_w_currency"] = features["dist_nearest_cell_w_currency"] / invoice_diag
