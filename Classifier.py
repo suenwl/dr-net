@@ -144,17 +144,28 @@ class Classifier:
         else:
             model = self.models[model_name]
 
-        return model.predict(input_features)
+        predictions = model.predict(input_features)
+        prediction_probabilities = model.predict_proba(input_features)
+        prediction_confidence = [
+            prediction_probabilities[i][category]
+            for i, category in enumerate(predictions)
+        ]
+        return {"categories": predictions, "confidence": prediction_confidence}
 
     def prediction_summary(self, predictions, labels):
-        fmt = "{:<8}{:<30}{}"
+        fmt = "{:<8}{:<30}{:<30}{}"
         num_correct = 0
         correct_counts_per_category = {k: 0 for k in labels}
         category_instances = {k: 0 for k in labels}
+        text_predictions = self.label_encoder.inverse_transform(
+            predictions["categories"]
+        )
 
-        print(fmt.format(" ", "Prediction", "Actual"))
-        for i, (prediction, label) in enumerate(zip(predictions, labels)):
-            print(fmt.format(i, prediction, label))
+        print(fmt.format(" ", "Prediction", "Actual", "Confidence"))
+        for i, (prediction, label, confidence) in enumerate(
+            zip(text_predictions, labels, predictions["confidence"])
+        ):
+            print(fmt.format(i, prediction, label, confidence))
             if prediction == label:
                 num_correct += 1
                 correct_counts_per_category[label] = (
@@ -164,9 +175,9 @@ class Classifier:
 
         print("")
         print("==========================================")
-        print("Overall Accuracy:", str(num_correct * 100 / len(predictions)) + "%")
+        print("Overall Accuracy:", str(num_correct * 100 / len(text_predictions)) + "%")
         print("==========================================")
-        print(fmt.format("", "Category", "Accuracy"))
+        print(fmt.format("", "Category", "Accuracy", ""))
         for category in category_instances:
             print(
                 fmt.format(
@@ -175,6 +186,7 @@ class Classifier:
                     correct_counts_per_category[category]
                     * 100
                     / category_instances[category],
+                    "",
                 )
             )
 
