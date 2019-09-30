@@ -11,7 +11,11 @@ from sklearn.preprocessing import LabelEncoder
 import pickle
 import os
 import random
-
+import numpy as np
+#testing new feature selection 
+#import statsmodels.api as sm
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import RidgeCV, LassoCV, Ridge, Lasso
 
 class Classifier:
     def __init__(self):
@@ -103,7 +107,11 @@ class Classifier:
         random.shuffle(invoices)
         splitting_point = int(len(invoices) * 0.8)
         train_invoices = invoices[:splitting_point]
+        # print("training data", sep = "\n\n")
+        # print(*map(lambda x: x.readable_name, train_invoices), sep = "\n")
         test_invoices = invoices[splitting_point:]
+        # print("testing data", sep = "\n\n")
+        # print(*map(lambda x: x.readable_name, test_invoices), sep = "\n")
 
         train_data, train_labels = cls.get_data_and_labels(
             train_invoices, features_to_use
@@ -189,4 +197,24 @@ class Classifier:
                     "",
                 )
             )
+
+    @classmethod
+    #bugs to fix to resolve: rfe = rfe.fit(train_data,train_labels)
+    #to do after: pick num of features that maximises accuracy
+    def recursive_feature_elimination(self,model_name:str, train_data,train_labels, test_data, test_labels):
+        #picklemapping = {"svm_model"}
+        model = pickle.load(open("svm_model", "rb"))
+        train_data = normalize(train_data)
+        train_labels = LabelEncoder().fit_transform(train_labels)
+        num_features=np.arange(1,38)            
+        high_score=0
+        #Variable to store the optimum features
+        nof=0           
+        score_list =[]
+        for n in range(len(num_features)):
+            rfe = RFE(model,num_features[n])
+            rfe = rfe.fit(train_data,train_labels)
+            # print summaries for the selection of attributes
+            print(rfe.support_)
+            print(rfe.ranking_)
 
