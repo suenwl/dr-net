@@ -1,5 +1,6 @@
 import fitz
 from PIL import Image
+from IPython.display import clear_output, display
 
 
 def convert_pdf_to_image(PDF_path):
@@ -17,11 +18,17 @@ def convert_pdf_to_image(PDF_path):
     return pages
 
 
-def print_progress(current, total):
+def print_progress(current, total, text):
     percentage = round(current / total * 100, 1)
-    done = "#" * int(str(percentage)[0]) * 5
-    todo = "-" * (50 - int(str(percentage)[0]))
-    string = "<{display}>".format(display=done + todo) + " " + str(percentage) + "%"
+    done = "#" * int(float(str(percentage / 2)))
+    todo = "-" * (50 - int(float(str(percentage / 2))))
+    string = (
+        "{text}<{display}>".format(text=text, display=done + todo)
+        + " "
+        + str(percentage)
+        + "%"
+    )
+    clear_output(wait=True)
     print(string, end="")
 
 
