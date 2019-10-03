@@ -1,6 +1,8 @@
 from Invoice import InvoicePage, Invoice
 from Token import Token
 from FeatureEngine import FeatureEngine
+from util import features_to_use
+from util import category_mappings
 from sklearn import svm
 from sklearn.model_selection import GridSearchCV
 from sklearn.naive_bayes import GaussianNB
@@ -28,7 +30,6 @@ class Classifier:
             "Naive Bayes": None,
             "Random Forest": None,
         }
-        self.label_encoder = LabelEncoder()
 
     def save_model(self, model: str, file_name: str):
         with open(file_name, "wb") as text_file:
@@ -90,10 +91,12 @@ class Classifier:
         self.save_model(pickle.dumps(classifier), "rf_model")
 
     @classmethod
-    def get_data_and_labels(cls, invoice_list, features_to_use):
-        # number_of_non_others_tokens = 0
-        # number_of_others_tokens = 0
-        # OTHERS_SCALING_FACTOR = 0.3  # Maximum percentage of others tokens
+    def get_data_and_labels(
+        cls, invoice_list, features_to_use=features_to_use, scale_others=False
+    ):
+        number_of_non_others_tokens = 0
+        number_of_others_tokens = 0
+        OTHERS_SCALING_FACTOR = 0.3  # Maximum percentage of others tokens
 
         def get_feature_list(token, invoice_page):
             features = FeatureEngine.create_features(token, invoice_page)
@@ -101,25 +104,31 @@ class Classifier:
 
         data = []
         labels = []
+        tokens = []
         for invoice in invoice_list:
             for invoice_page in invoice.pages:
                 if invoice_page.grouped_tokens:
                     for token in invoice_page.grouped_tokens:
-                        data.append(get_feature_list(token, invoice_page))
-                        labels.append(token.category)
-                        # if token.category != "Others":
-                        #     number_of_non_others_tokens += 1
-                        #     data.append(get_feature_list(token, invoice_page))
-                        #     labels.append(token.category)
-                        # elif (
-                        #     number_of_others_tokens
-                        #     < number_of_non_others_tokens * OTHERS_SCALING_FACTOR
-                        # ):
-                        #     number_of_others_tokens += 1
-                        #     data.append(get_feature_list(token, invoice_page))
-                        #     labels.append(token.category)
+                        if not scale_others:
+                            data.append(get_feature_list(token, invoice_page))
+                            labels.append(token.category)
+                            tokens.append(token)
+                        else:
+                            if token.category != "Others":
+                                number_of_non_others_tokens += 1
+                                data.append(get_feature_list(token, invoice_page))
+                                labels.append(token.category)
+                                tokens.append(token)
+                            elif (
+                                number_of_others_tokens
+                                < number_of_non_others_tokens * OTHERS_SCALING_FACTOR
+                            ):
+                                number_of_others_tokens += 1
+                                data.append(get_feature_list(token, invoice_page))
+                                labels.append(token.category)
+                                tokens.append(token)
 
-        return data, labels
+        return data, labels, tokens
 
     @classmethod
     def create_train_and_test_packet(
@@ -134,10 +143,12 @@ class Classifier:
         # print("testing data", sep = "\n\n")
         # print(*map(lambda x: x.readable_name, test_invoices), sep = "\n")
 
-        train_data, train_labels = cls.get_data_and_labels(
-            train_invoices, features_to_use
+        train_data, train_labels, train_tokens = cls.get_data_and_labels(
+            train_invoices, features_to_use, scale_others=False
         )
-        test_data, test_labels = cls.get_data_and_labels(test_invoices, features_to_use)
+        test_data, test_labels, train_tokens = cls.get_data_and_labels(
+            test_invoices, features_to_use, scale_others=False
+        )
 
         return {
             "train_data": train_data,
@@ -149,7 +160,7 @@ class Classifier:
     def train(self, model_name: str, data, labels):
         # mlp sensitive to feature scaling, plus NN requires this so we standardise scaling first
         data = normalize(data)
-        labels = self.label_encoder.fit_transform(labels)
+        labels = list(map(lambda label: category_mappings[label], labels))
         # labels = scaler.transform(labels)
         """ Used to train a specific model """
         if model_name == "Support Vector Machine":
@@ -176,11 +187,37 @@ class Classifier:
         return {"categories": predictions, "confidence": prediction_confidence}
 
     def predict_invoice_fields(self, invoice: Invoice, model_name: str):
-        pass
+        predicted_categories = {
+            "Account number": (None, 0),
+            "Consumption period": (None, 0),
+            "Country of consumption": (None, 0),
+            "Currency of invoice": (None, 0),
+            "Date of invoice": (None, 0),
+            "Invoice number": (None, 0),
+            "Name of provider": (None, 0),
+            "Others": (None, 0),
+            "PO Number": (None, 0),
+            "Tax": (None, 0),
+            "Total amount": (None, 0),
+        }
+        data, labels, tokens = self.get_data_and_labels(
+            [invoice], features_to_use, scale_others=False
+        )
+        predictions = self.predict_token_classifications(data, model_name)
+        categories = list(
+            map(lambda label: category_mappings[label], predictions["categories"])
+        )
+        confidence = predictions["confidence"]
+        for index in range(len(categories)):
+            category = categories[index]
+            if confidence[index] > predicted_categories[category][1]:
+                predicted_categories[category] = (tokens[index], confidence[index])
+
+        return predicted_categories
 
     def prediction_summary(self, predictions, labels):
-        text_predictions = self.label_encoder.inverse_transform(
-            predictions["categories"]
+        text_predictions = list(
+            map(lambda label: category_mappings[label], predictions["categories"])
         )
         report = "'" + classification_report(labels, text_predictions)[1:]
         print(report)

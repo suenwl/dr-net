@@ -17,6 +17,32 @@ def convert_pdf_to_image(PDF_path):
     return pages
 
 
+category_mappings = {
+    "Others": 0,
+    "Account number": 1,
+    "Consumption period": 2,
+    "Country of consumption": 3,
+    "Currency of invoice": 4,
+    "Date of invoice": 5,
+    "Invoice number": 6,
+    "Name of provider": 7,
+    "PO Number": 8,
+    "Tax": 9,
+    "Total amount": 10,
+    0: "Others",
+    1: "Account number",
+    2: "Consumption period",
+    3: "Country of consumption",
+    4: "Currency of invoice",
+    5: "Date of invoice",
+    6: "Invoice number",
+    7: "Name of provider",
+    8: "PO Number",
+    9: "Tax",
+    10: "Total amount",
+}
+
+
 features_to_use = [
     "contains_date",
     "contains_currency",
