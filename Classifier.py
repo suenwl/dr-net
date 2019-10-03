@@ -8,14 +8,17 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import normalize
 from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import classification_report
 import pickle
 import os
 import random
 import numpy as np
-#testing new feature selection 
-#import statsmodels.api as sm
+
+# testing new feature selection
+# import statsmodels.api as sm
 from sklearn.feature_selection import RFE
 from sklearn.linear_model import RidgeCV, LassoCV, Ridge, Lasso
+
 
 class Classifier:
     def __init__(self):
@@ -30,6 +33,22 @@ class Classifier:
     def save_model(self, model: str, file_name: str):
         with open(file_name, "wb") as text_file:
             text_file.write(model)
+
+    def load_model(self, model_name: str):
+        model_name_mappings = {
+            "Support Vector Machine": "svm_model",
+            "Neural Network": "nn_model",
+            "Naive Bayes": "nb_model",
+            "Random Forest": "rf_model",
+        }
+        model_file_name = model_name_mappings[model_name]
+        if os.path.exists(model_file_name):
+            model = pickle.load(open(model_file_name, "rb"))
+            self.models[model_name] = model
+        else:
+            raise Exception(
+                "The model either has not been trained, or has not been loaded correctly. Call the train() method, and check if the model is in the correct directory"
+            )
 
     def train_support_vector_machine(self, data, labels):
         parameters = {
@@ -72,9 +91,9 @@ class Classifier:
 
     @classmethod
     def get_data_and_labels(cls, invoice_list, features_to_use):
-        number_of_non_others_tokens = 0
-        number_of_others_tokens = 0
-        OTHERS_SCALING_FACTOR = 0.3  # Maximum percentage of others tokens
+        # number_of_non_others_tokens = 0
+        # number_of_others_tokens = 0
+        # OTHERS_SCALING_FACTOR = 0.3  # Maximum percentage of others tokens
 
         def get_feature_list(token, invoice_page):
             features = FeatureEngine.create_features(token, invoice_page)
@@ -86,17 +105,19 @@ class Classifier:
             for invoice_page in invoice.pages:
                 if invoice_page.grouped_tokens:
                     for token in invoice_page.grouped_tokens:
-                        if token.category != "Others":
-                            number_of_non_others_tokens += 1
-                            data.append(get_feature_list(token, invoice_page))
-                            labels.append(token.category)
-                        elif (
-                            number_of_others_tokens
-                            < number_of_non_others_tokens * OTHERS_SCALING_FACTOR
-                        ):
-                            number_of_others_tokens += 1
-                            data.append(get_feature_list(token, invoice_page))
-                            labels.append(token.category)
+                        data.append(get_feature_list(token, invoice_page))
+                        labels.append(token.category)
+                        # if token.category != "Others":
+                        #     number_of_non_others_tokens += 1
+                        #     data.append(get_feature_list(token, invoice_page))
+                        #     labels.append(token.category)
+                        # elif (
+                        #     number_of_others_tokens
+                        #     < number_of_non_others_tokens * OTHERS_SCALING_FACTOR
+                        # ):
+                        #     number_of_others_tokens += 1
+                        #     data.append(get_feature_list(token, invoice_page))
+                        #     labels.append(token.category)
 
         return data, labels
 
@@ -140,17 +161,11 @@ class Classifier:
         elif model_name == "Random Forest":
             self.train_random_forest(data, labels)
 
-    def predict(self, input_features, model_name: str):
+    def predict_token_classifications(self, input_features, model_name: str):
         """ Predicts the classification of a token using a model """
         if not self.models[model_name]:
-            if os.path.exists(model_name):
-                model = pickle.load(open(model_name, "rb"))
-            else:
-                raise Exception(
-                    "The model either has not been trained, or has not been loaded correctly. Call the train() method, and check if the model is in the correct directory"
-                )
-        else:
-            model = self.models[model_name]
+            self.load_model(model_name)
+        model = self.models[model_name]
 
         predictions = model.predict(input_features)
         prediction_probabilities = model.predict_proba(input_features)
@@ -160,61 +175,33 @@ class Classifier:
         ]
         return {"categories": predictions, "confidence": prediction_confidence}
 
+    def predict_invoice_fields(self, invoice: Invoice, model_name: str):
+        pass
+
     def prediction_summary(self, predictions, labels):
-        fmt = "{:<8}{:<30}{:<30}{}"
-        num_correct = 0
-        correct_counts_per_category = {k: 0 for k in labels}
-        category_instances = {k: 0 for k in labels}
         text_predictions = self.label_encoder.inverse_transform(
             predictions["categories"]
         )
-
-        print(fmt.format(" ", "Prediction", "Actual", "Confidence"))
-        for i, (prediction, label, confidence) in enumerate(
-            zip(text_predictions, labels, predictions["confidence"])
-        ):
-            print(fmt.format(i, prediction, label, confidence))
-            if prediction == label:
-                num_correct += 1
-                correct_counts_per_category[label] = (
-                    correct_counts_per_category[label] + 1
-                )
-            category_instances[label] = category_instances[label] + 1
-
-        print("")
-        print("==========================================")
-        print("Overall Accuracy:", str(num_correct * 100 / len(text_predictions)) + "%")
-        print("==========================================")
-        print(fmt.format("", "Category", "Accuracy", ""))
-        for category in category_instances:
-            print(
-                fmt.format(
-                    "",
-                    category,
-                    correct_counts_per_category[category]
-                    * 100
-                    / category_instances[category],
-                    "",
-                )
-            )
+        report = "'" + classification_report(labels, text_predictions)[1:]
+        print(report)
 
     @classmethod
-    #bugs to fix to resolve: rfe = rfe.fit(train_data,train_labels)
-    #to do after: pick num of features that maximises accuracy
-    def recursive_feature_elimination(self,model_name:str, train_data,train_labels, test_data, test_labels):
-        #picklemapping = {"svm_model"}
-        model = pickle.load(open("svm_model", "rb"))
+    # bugs to fix to resolve: rfe = rfe.fit(train_data,train_labels)
+    # to do after: pick num of features that maximises accuracy
+    def recursive_feature_elimination(
+        self, model_name: str, train_data, train_labels, test_data, test_labels
+    ):
+        model = self.models["Support Vector Machine"]
         train_data = normalize(train_data)
         train_labels = LabelEncoder().fit_transform(train_labels)
-        num_features=np.arange(1,38)            
-        high_score=0
-        #Variable to store the optimum features
-        nof=0           
-        score_list =[]
-        for n in range(len(num_features)):
-            rfe = RFE(model,num_features[n])
-            rfe = rfe.fit(train_data,train_labels)
-            # print summaries for the selection of attributes
-            print(rfe.support_)
-            print(rfe.ranking_)
+        num_features = 20
+        # high_score=0
+        # Variable to store the optimum features
+        # nof=0
+        # score_list =[]
+        rfe = RFE(model, num_features)
+        rfe = rfe.fit(train_data, train_labels)
+        # print summaries for the selection of attributes
+        print(rfe.support_)
+        print(rfe.ranking_)
 
