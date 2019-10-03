@@ -87,6 +87,11 @@ class FeatureEngine:
 
         # checks if two tokens are aligned vertically within a margin of error (checks midpoint, left boundary, right boundary)
         def is_vert_aligned(t1, t2, moe):
+            """Returns true if t2 is vertically aligned with t1 and is below t1"""
+            t2_below_t1 = t1.coordinates["y"] - t2.coordinates["y"] < 0
+            if not t2_below_t1:
+                return False
+
             if abs(t1.coordinates["x"] - t2.coordinates["x"]) < moe:
                 return True
             if (
@@ -105,6 +110,11 @@ class FeatureEngine:
 
         # checks if two tokens are aligned horizontally within a margin of error (checks midpoint, top boundary, bottom boundary)
         def is_hori_aligned(t1, t2, moe):
+            """Returns true if t2 is horizontally aligned with t1 and is to the right of t1"""
+            t2_to_right_of_t1 = t1.coordinates["x"] - t2.coordinates["x"] < 0
+            if not t2_to_right_of_t1:
+                return False
+
             if abs(t1.coordinates["y"] - t2.coordinates["y"]) < moe:
                 return True
             if (
