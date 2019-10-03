@@ -17,6 +17,14 @@ def convert_pdf_to_image(PDF_path):
     return pages
 
 
+def print_progress(current, total):
+    percentage = round(current / total * 100, 1)
+    done = "#" * int(str(percentage)[0]) * 5
+    todo = "-" * (50 - int(str(percentage)[0]))
+    string = "<{display}>".format(display=done + todo) + " " + str(percentage) + "%"
+    print(string, end="")
+
+
 category_mappings = {
     "Others": 0,
     "Account number": 1,

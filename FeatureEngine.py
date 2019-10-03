@@ -1,6 +1,7 @@
 from typing import List
 from Token import Token
 from Invoice import InvoicePage
+from util import print_progress
 import math
 import json
 import os
@@ -13,44 +14,47 @@ class FeatureEngine:
         # This tuple represents the number of pages to do OCR for for each invoice. Eg. (2,1) represents do OCR for the first 2 pages, and for the last page
         RANGE_OF_PAGES_FOR_OCR = (2, 2)
         invoices = []
-        for filename in os.listdir(data_path):
-            if filename.endswith(".pdf"):
-                invoice = Invoice(data_path + "/" + filename)
+        pdf_list = list(filter(lambda file_name: file_name.endswith(".pdf"),os.listdir(data_path)))
+        for index,filename in enumerate(pdf_list):
+            invoice = Invoice(data_path + "/" + filename)
 
-                if autoload:
-                    loaded = invoice.load_data()
-                    if loaded:
-                        invoices.append(invoice)
-
-                    else:
-                        # First check if json tags are present. If they aren't, skip this pdf
-                        if not os.path.exists(data_path + "/" + filename[:-4] + ".json"):
-                            print(
-                                "Warning: json tags for",
-                                filename,
-                                "does not exist. Check if they are in the same folder. Skipping this pdf",
-                            )
-                            continue
-
-                        # Next, do OCR for the relevant pages in the invoice
-                        if verbose:
-                            print("Processing:", invoice.readable_name)
-
-                        if invoice.length() < sum(RANGE_OF_PAGES_FOR_OCR):
-                            for page in invoice.pages:
-                                page.do_OCR(verbose=verbose)
-                        else:
-                            for page in invoice.pages[: RANGE_OF_PAGES_FOR_OCR[0]]:
-                                page.do_OCR(verbose=verbose)
-                            for page in invoice.pages[-RANGE_OF_PAGES_FOR_OCR[1] :]:
-                                page.do_OCR(verbose=verbose)
-
-                        # Try mapping labels
-                        invoice.map_labels(verbose=verbose)
-                        invoices.append(invoice)
-                        invoice.save_data()
-                else:
+            if autoload:
+                loaded = invoice.load_data()
+                if loaded:
                     invoices.append(invoice)
+
+                else:
+                    # First check if json tags are present. If they aren't, skip this pdf
+                    if not os.path.exists(data_path + "/" + filename[:-4] + ".json"):
+                        print(
+                            "Warning: json tags for",
+                            filename,
+                            "does not exist. Check if they are in the same folder. Skipping this pdf",
+                        )
+                        continue
+
+                    # Next, do OCR for the relevant pages in the invoice
+                    if verbose:
+                        print("Processing:", invoice.readable_name)
+
+                    if invoice.length() < sum(RANGE_OF_PAGES_FOR_OCR):
+                        for page in invoice.pages:
+                            page.do_OCR(verbose=verbose)
+                    else:
+                        for page in invoice.pages[: RANGE_OF_PAGES_FOR_OCR[0]]:
+                            page.do_OCR(verbose=verbose)
+                        for page in invoice.pages[-RANGE_OF_PAGES_FOR_OCR[1] :]:
+                            page.do_OCR(verbose=verbose)
+
+                    # Try mapping labels
+                    invoice.map_labels(verbose=verbose)
+                    invoices.append(invoice)
+                    invoice.save_data()
+            else:
+                invoices.append(invoice)
+
+            if verbose:
+                print_progress(index,len(pdf_list))
 
         return invoices
 
@@ -241,6 +245,7 @@ class FeatureEngine:
         features["vert_align_to_cell_w_invoicenum_label"] = 0
         features["vert_align_to_cell_w_accountnum_label"] = 0
         features["vert_align_to_cell_w_ponum_label"] = 0
+        features["vert_align_to_cell_w_tax_label"] = 0
 
         features["hori_align_to_cell_w_date"] = 0
         features["hori_align_to_cell_w_currency"] = 0
@@ -253,6 +258,7 @@ class FeatureEngine:
         features["hori_align_to_cell_w_invoicenum_label"] = 0
         features["hori_align_to_cell_w_accountnum_label"] = 0
         features["hori_align_to_cell_w_ponum_label"] = 0
+        features["hori_align_to_cell_w_tax_label"] = 0
         
 
         for t in invoicePage.grouped_tokens:
@@ -280,6 +286,8 @@ class FeatureEngine:
                         features["vert_align_to_cell_w_totallabel"] = 1
                     if t.contains_digit:
                         features["vert_align_to_cell_w_digit"] = 1
+                    if t.tax_label:
+                        features["vert_align_to_cell_w_tax_label"] = 1
 
 
                 if is_hori_aligned(t, token, moe):
@@ -305,6 +313,8 @@ class FeatureEngine:
                         features["hori_align_to_cell_w_totallabel"] = 1
                     if t.contains_digit:
                         features["hori_align_to_cell_w_digit"] = 1
+                    if t.tax_label:
+                        features["hori_align_to_cell_w_tax_label"] = 1
                     
 
         # dist to nearest cell with field (inf if no field in page)
@@ -315,6 +325,7 @@ class FeatureEngine:
         features["dist_nearest_cell_w_numlabel"] = math.inf
         features["dist_nearest_cell_w_totallabel"] = math.inf
         features["dist_nearest_cell_w_digit"] = math.inf
+        features["dist_nearest_cell_w_tax_label"] = math.inf
 
         for t in invoicePage.grouped_tokens:
             if t is not token:
@@ -333,6 +344,8 @@ class FeatureEngine:
                     features["dist_nearest_cell_w_totallabel"] = dist
                 if t.contains_digit and dist < features["dist_nearest_cell_w_digit"]:
                     features["dist_nearest_cell_w_digit"] = dist
+                if t.tax_label and dist < features["dist_nearest_cell_w_tax_label"]:
+                    features["dist_nearest_cell_w_tax_label"] = dist
 
         DEFAULT_DISTANCE = 0.75 # This is arbitrary
         for feature in ["dist_nearest_cell_w_date","dist_nearest_cell_w_currency","dist_nearest_cell_w_address","dist_nearest_cell_w_datelabel","dist_nearest_cell_w_numlabel","dist_nearest_cell_w_totallabel","dist_nearest_cell_w_digit"]:
@@ -346,6 +359,7 @@ class FeatureEngine:
         features["rel_dist_nearest_cell_w_numlabel"] = features["dist_nearest_cell_w_numlabel"] / invoice_diag
         features["rel_dist_nearest_cell_w_totallabel"] = features["dist_nearest_cell_w_totallabel"] / invoice_diag
         features["rel_dist_nearest_cell_w_digit"] = features["dist_nearest_cell_w_digit"] / invoice_diag
+        features["rel_dist_nearest_cell_w_tax_label"] = features["dist_nearest_cell_w_tax_label"] / invoice_diag
 
         """
         features TODO:
