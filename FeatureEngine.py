@@ -54,7 +54,7 @@ class FeatureEngine:
                 invoice.save_data()
 
             if verbose:
-                print_progress(index,len(pdf_list),"Loading invoices ")
+                print_progress(index+1,len(pdf_list),"Loading invoices ")
 
         return invoices
 
@@ -171,8 +171,8 @@ class FeatureEngine:
                 max_x = t.coordinates["x"] + t.coordinates["width"]
             if t.coordinates["y"] + t.coordinates["height"] > max_y:
                 max_y = t.coordinates["y"] + t.coordinates["height"]
-        features["dist_top_outer"] = token.coordinates["y"] - min_x
-        features["dist_left_outer"] = token.coordinates["x"] - min_y
+        features["dist_top_outer"] = token.coordinates["y"] - min_y
+        features["dist_left_outer"] = token.coordinates["x"] - min_x
         features["dist_bottom_outer"] = max_y - (
             token.coordinates["y"] + token.coordinates["height"]
         )
@@ -227,10 +227,12 @@ class FeatureEngine:
         features["contains_address"] = 1 if token.address else 0
         features["contains_num_label"] = 1 if token.num_label else 0
         features["contains_total_label"] = 1 if token.total_label else 0
+        features["contains_amount_label"] = 1 if token.amount_label else 0
         features["contains_date_label"] = 1 if token.date_label else 0
         features["contains_date_of_invoice_label"] = 1 if features["contains_date_label"] and len(token.date_label.split(" ")) > 1 else 0 # This is a more specific feature that the one above
         features["contains_digit"] = 1 if token.contains_digit else 0
         features["contains_company"] = 1 if token.company else 0
+        features["contains_tax_label"] = 1 if token.tax_label else 0
 
         # boolean if aligned with selected tokens
         moe = 10  # arbitary 10 pixle margin of error
@@ -241,6 +243,7 @@ class FeatureEngine:
         features["vert_align_to_cell_w_dateofinvoicelabel"] = 0
         features["vert_align_to_cell_w_numlabel"] = 0
         features["vert_align_to_cell_w_totallabel"] = 0
+        features["vert_align_to_cell_w_amountlabel"] = 0
         features["vert_align_to_cell_w_digit"] = 0
         features["vert_align_to_cell_w_invoicenum_label"] = 0
         features["vert_align_to_cell_w_accountnum_label"] = 0
@@ -254,6 +257,7 @@ class FeatureEngine:
         features["hori_align_to_cell_w_dateofinvoicelabel"] = 0
         features["hori_align_to_cell_w_numlabel"] = 0
         features["hori_align_to_cell_w_totallabel"] = 0
+        features["hori_align_to_cell_w_amountlabel"] = 0
         features["hori_align_to_cell_w_digit"] = 0
         features["hori_align_to_cell_w_invoicenum_label"] = 0
         features["hori_align_to_cell_w_accountnum_label"] = 0
@@ -284,6 +288,8 @@ class FeatureEngine:
                             features["vert_align_to_cell_w_ponum_label"] = 1
                     if t.total_label:
                         features["vert_align_to_cell_w_totallabel"] = 1
+                    if t.amount_label:
+                        features["vert_align_to_cell_w_accountnum_label"] = 1
                     if t.contains_digit:
                         features["vert_align_to_cell_w_digit"] = 1
                     if t.tax_label:
@@ -311,6 +317,8 @@ class FeatureEngine:
                             features["hori_align_to_cell_w_ponum_label"] = 1
                     if t.total_label:
                         features["hori_align_to_cell_w_totallabel"] = 1
+                    if t.amount_label:
+                        features["hori_align_to_cell_w_accountnum_label"] = 1
                     if t.contains_digit:
                         features["hori_align_to_cell_w_digit"] = 1
                     if t.tax_label:
@@ -324,6 +332,7 @@ class FeatureEngine:
         features["dist_nearest_cell_w_datelabel"] = math.inf
         features["dist_nearest_cell_w_numlabel"] = math.inf
         features["dist_nearest_cell_w_totallabel"] = math.inf
+        features["dist_nearest_cell_w_amountlabel"] = math.inf
         features["dist_nearest_cell_w_digit"] = math.inf
         features["dist_nearest_cell_w_tax_label"] = math.inf
 
@@ -342,14 +351,16 @@ class FeatureEngine:
                     features["dist_nearest_cell_w_numlabel"] = dist
                 if t.total_label and dist < features["dist_nearest_cell_w_totallabel"]:
                     features["dist_nearest_cell_w_totallabel"] = dist
+                if t.total_label and dist < features["dist_nearest_cell_w_amountlabel"]:
+                    features["dist_nearest_cell_w_amountlabel"] = dist
                 if t.contains_digit and dist < features["dist_nearest_cell_w_digit"]:
                     features["dist_nearest_cell_w_digit"] = dist
                 if t.tax_label and dist < features["dist_nearest_cell_w_tax_label"]:
                     features["dist_nearest_cell_w_tax_label"] = dist
 
         DEFAULT_DISTANCE = 0.75 # This is arbitrary
-        for feature in ["dist_nearest_cell_w_date","dist_nearest_cell_w_currency","dist_nearest_cell_w_address","dist_nearest_cell_w_datelabel","dist_nearest_cell_w_numlabel","dist_nearest_cell_w_totallabel","dist_nearest_cell_w_digit"]:
-            if math.isinf(features[feature]):
+        for feature in features:
+            if "dist_nearest" in feature and math.isinf(features[feature]):
                 features[feature] = invoice_diag*DEFAULT_DISTANCE
 
         features["rel_dist_nearest_cell_w_date"] = features["dist_nearest_cell_w_date"] / invoice_diag
@@ -358,6 +369,7 @@ class FeatureEngine:
         features["rel_dist_nearest_cell_w_datelabel"] = features["dist_nearest_cell_w_datelabel"] / invoice_diag
         features["rel_dist_nearest_cell_w_numlabel"] = features["dist_nearest_cell_w_numlabel"] / invoice_diag
         features["rel_dist_nearest_cell_w_totallabel"] = features["dist_nearest_cell_w_totallabel"] / invoice_diag
+        features["rel_dist_nearest_cell_w_amountlabel"] = features["dist_nearest_cell_w_amountlabel"] / invoice_diag
         features["rel_dist_nearest_cell_w_digit"] = features["dist_nearest_cell_w_digit"] / invoice_diag
         features["rel_dist_nearest_cell_w_tax_label"] = features["dist_nearest_cell_w_tax_label"] / invoice_diag
 
