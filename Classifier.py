@@ -1,15 +1,15 @@
 from Invoice import InvoicePage, Invoice
 from Token import Token
 from FeatureEngine import FeatureEngine
-from util import features_to_use
-from util import category_mappings
+from util import features_to_use, category_mappings
 from sklearn import svm
 from sklearn.model_selection import GridSearchCV
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import normalize
-from sklearn.preprocessing import LabelEncoder
+from sklearn.feature_selection import SelectKBest, chi2
+
 from sklearn.metrics import classification_report
 import pickle
 import os
@@ -31,25 +31,16 @@ class Classifier:
             "Random Forest": None,
         }
 
-    def save_model(self, model: str, file_name: str):
-        with open(file_name, "wb") as text_file:
-            text_file.write(model)
+    def save(self):
+        with open("classifier", "wb") as text_file:
+            text_file.write(pickle.dumps(self))
 
-    def load_model(self, model_name: str):
-        model_name_mappings = {
-            "Support Vector Machine": "svm_model",
-            "Neural Network": "nn_model",
-            "Naive Bayes": "nb_model",
-            "Random Forest": "rf_model",
-        }
-        model_file_name = model_name_mappings[model_name]
-        if os.path.exists(model_file_name):
-            model = pickle.load(open(model_file_name, "rb"))
-            self.models[model_name] = model
+    def load(self):
+        if os.path.exists("classifier"):
+            classifier = pickle.load(open("classifier", "rb"))
+            self.models = classifier.models
         else:
-            raise Exception(
-                "The model either has not been trained, or has not been loaded correctly. Call the train() method, and check if the model is in the correct directory"
-            )
+            raise Exception("Classifier save file does not exist")
 
     def train_support_vector_machine(self, data, labels):
         parameters = {
@@ -59,28 +50,28 @@ class Classifier:
         }
         # original line without use of grid search to optimise parameters
         # classifier = svm.SVC(gamma=0.001, C=100.0)
-        svc = svm.SVC(probability=True)
-        classifier = GridSearchCV(svc, parameters, cv=5)
+        classifier = svm.SVC(probability=True, gamma=0.001, C=1, kernel="linear")
+        # classifier = GridSearchCV(classifier, parameters, cv=5)
         classifier.fit(data, labels)
         self.models["Support Vector Machine"] = classifier
         # save the model to disk
-        self.save_model(pickle.dumps(classifier), "svm_model")
+        self.save()
 
     def train_neural_network(self, data, labels):
         # multi-layer perceptron (MLP) algorithm
         # consider increasing neuron number to match number of features as data set
         classifier = MLPClassifier(
-            solver="lbfgs", alpha=1e-5, hidden_layer_sizes=(30, 30), random_state=1
+            solver="lbfgs", alpha=1e-5, hidden_layer_sizes=(20, 20), random_state=1
         )
         classifier.fit(data, labels)
         self.models["Neural Network"] = classifier
-        self.save_model(pickle.dumps(classifier), "nn_model")
+        self.save()
 
     def train_naive_bayes(self, data, labels):
         classifier = GaussianNB()
         classifier.fit(data, labels)
         self.models["Naive Bayes"] = classifier
-        self.save_model(pickle.dumps(classifier), "nb_model")
+        self.save()
 
     def train_random_forest(self, data, labels):
         classifier = RandomForestClassifier(
@@ -88,7 +79,25 @@ class Classifier:
         )
         classifier.fit(data, labels)
         self.models["Random Forest"] = classifier
-        self.save_model(pickle.dumps(classifier), "rf_model")
+        self.save()
+
+    def train(self, model_name: str, data, labels, max_features="all"):
+        # mlp sensitive to feature scaling, plus NN requires this so we standardise scaling first
+        data = normalize(data)
+        labels = list(map(lambda label: category_mappings[label], labels))
+        # self.feature_selector = SelectKBest(chi2, k=max_features).fit(data, labels)
+        # data = self.feature_selector.transform(data)
+        # labels = scaler.transform(labels)
+        """ Used to train a specific model """
+        if model_name == "Support Vector Machine":
+            self.train_support_vector_machine(data, labels)
+        elif model_name == "Neural Network":
+            self.train_neural_network(data, labels)
+        elif model_name == "Naive Bayes":
+            self.train_naive_bayes(data, labels)
+        elif model_name == "Random Forest":
+            self.train_random_forest(data, labels)
+        self.save()
 
     @classmethod
     def get_data_and_labels(
@@ -157,27 +166,15 @@ class Classifier:
             "test_labels": test_labels,
         }
 
-    def train(self, model_name: str, data, labels):
-        # mlp sensitive to feature scaling, plus NN requires this so we standardise scaling first
-        data = normalize(data)
-        labels = list(map(lambda label: category_mappings[label], labels))
-        # labels = scaler.transform(labels)
-        """ Used to train a specific model """
-        if model_name == "Support Vector Machine":
-            self.train_support_vector_machine(data, labels)
-        elif model_name == "Neural Network":
-            self.train_neural_network(data, labels)
-        elif model_name == "Naive Bayes":
-            self.train_naive_bayes(data, labels)
-        elif model_name == "Random Forest":
-            self.train_random_forest(data, labels)
-
     def predict_token_classifications(self, input_features, model_name: str):
         """ Predicts the classification of a token using a model """
         if not self.models[model_name]:
-            self.load_model(model_name)
+            raise Exception(
+                "Model is either not trained, or not loaded. Call the load() method if you have a classifier save file"
+            )
         model = self.models[model_name]
 
+        # input_features = self.feature_selector.transform(input_features)
         predictions = model.predict(input_features)
         prediction_probabilities = model.predict_proba(input_features)
         prediction_confidence = [
@@ -221,6 +218,11 @@ class Classifier:
         )
         report = "'" + classification_report(labels, text_predictions)[1:]
         print(report)
+
+    @classmethod
+    def select_features(cls, data, labels, max_number="all"):
+        select = SelectKBest(chi2, k=max_number).fit(data, labels)
+        list(select.scores_)
 
     @classmethod
     # bugs to fix to resolve: rfe = rfe.fit(train_data,train_labels)
