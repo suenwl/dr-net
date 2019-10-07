@@ -260,7 +260,7 @@ class OCREngine:
             config="pitsync_linear_version==6, textord_noise_rejwords==0， textord_noise_rejrows==0",
         )
         if verbose:
-            print("--- Processed page in %s seconds ---" % (time.time() - start_time))
+            print("--- OCRed page in %s seconds ---" % (time.time() - start_time))
 
         # Do some preliminary processing and grouping of the raw OCR output
         cleaned_OCR_output = self.clean_OCR_output(raw_OCR_output)
