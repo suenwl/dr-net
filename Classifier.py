@@ -224,23 +224,3 @@ class Classifier:
         select = SelectKBest(chi2, k=max_number).fit(data, labels)
         list(select.scores_)
 
-    @classmethod
-    # bugs to fix to resolve: rfe = rfe.fit(train_data,train_labels)
-    # to do after: pick num of features that maximises accuracy
-    def recursive_feature_elimination(
-        self, model_name: str, train_data, train_labels, test_data, test_labels
-    ):
-        model = self.models["Support Vector Machine"]
-        train_data = normalize(train_data)
-        train_labels = LabelEncoder().fit_transform(train_labels)
-        num_features = 20
-        # high_score=0
-        # Variable to store the optimum features
-        # nof=0
-        # score_list =[]
-        rfe = RFE(model, num_features)
-        rfe = rfe.fit(train_data, train_labels)
-        # print summaries for the selection of attributes
-        print(rfe.support_)
-        print(rfe.ranking_)
-
