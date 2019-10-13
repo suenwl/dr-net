@@ -138,7 +138,7 @@ class Token:
 
     # returns string for description of number, eg. account number, invoice number
     def get_num_label(self):
-        kw = ["no", "no.", "no:", "no.:", "number", "num", "#", "#:"]
+        kw = ["no", "no.", "no:", "no.:", "number", "num", "#", "#:", "id", "id:"]
         if self.text:
             text_array = self.text.lower().split(" ")
             if any(word in text_array for word in kw):

@@ -155,6 +155,46 @@ class Classifier:
             test_invoices, features_to_use, scale_others=False
         )
 
+        # data, labels, tokens = cls.get_data_and_labels(
+        #     invoices, features_to_use, scale_others=False
+        # )
+
+        # # Compile data into a dictionary
+        # zipped = list(zip(data, labels, tokens))
+        # dictionary_of_categories = {}
+        # for token in zipped:
+        #     label = token[1]
+        #     if label not in dictionary_of_categories:  # If category does not yet exist
+        #         dictionary_of_categories[label] = []
+        #     else:
+        #         dictionary_of_categories[label].append(token)
+
+        # train = []
+        # test = []
+
+        # # Shuffle all categories
+        # for category in dictionary_of_categories:
+        #     category_data = dictionary_of_categories[category]
+        #     random.shuffle(category_data)
+        #     splitting_point = int(len(category_data) * percentage_train)
+        #     train.extend(category_data[:splitting_point])
+        #     test.extend(category_data[splitting_point:])
+
+        # random.shuffle(train)
+        # random.shuffle(test)
+
+        # train_data = []
+        # train_labels = []
+        # test_data = []
+        # test_labels = []
+
+        # for data in train:
+        #     train_data.append(data[0])
+        #     train_labels.append(data[1])
+        # for data in test:
+        #     test_data.append(data[0])
+        #     test_labels.append(data[1])
+
         return {
             "train_data": train_data,
             "train_labels": train_labels,

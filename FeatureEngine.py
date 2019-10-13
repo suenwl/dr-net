@@ -280,9 +280,9 @@ class FeatureEngine:
                             features["vert_align_to_cell_w_dateofinvoicelabel"] = 1 
                     if t.num_label:
                         features["vert_align_to_cell_w_numlabel"] = 1
-                        if any(word in t.num_label for word in ["invoice","inv","receipt"]):
+                        if any(word in t.num_label for word in ["invoice","inv","receipt","bill"]):
                             features["vert_align_to_cell_w_invoicenum_label"] = 1
-                        if any(word in t.num_label for word in ["account","acc","customer"]):
+                        if any(word in t.num_label for word in ["account","acc","customer","a/c"]):
                             features["vert_align_to_cell_w_accountnum_label"] = 1
                         if any(word in t.num_label for word in ["po","sales"]):
                             features["vert_align_to_cell_w_ponum_label"] = 1
@@ -309,9 +309,9 @@ class FeatureEngine:
                             features["hori_align_to_cell_w_dateofinvoicelabel"] = 1 
                     if t.num_label:
                         features["hori_align_to_cell_w_numlabel"] = 1
-                        if any(word in t.num_label for word in ["invoice","inv","receipt"]):
+                        if any(word in t.num_label for word in ["invoice","inv","receipt", "bill"]):
                             features["hori_align_to_cell_w_invoicenum_label"] = 1
-                        if any(word in t.num_label for word in ["account","acc","customer"]):
+                        if any(word in t.num_label for word in ["account","acc","customer", "a/c"]):
                             features["hori_align_to_cell_w_accountnum_label"] = 1
                         if any(word in t.num_label for word in ["po","sales"]):
                             features["hori_align_to_cell_w_ponum_label"] = 1
