@@ -5,41 +5,32 @@ from FeatureEngine import FeatureEngine
 from Invoice import Invoice
 from Token import Token
 from Classifier import Classifier
-from util import *
-
+from util import features_to_use
 
 print("Starting...")
-# Load invoices in specific folder
-INVOICE_PATH = "/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices/singtel_2.pdf"
-invoice = Invoice(INVOICE_PATH)
-page = invoice.get_page(1)
-# page.remove_lines()
-page.do_OCR()
-#page.draw_bounding_boxes("group")
-feature_engine = FeatureEngine()
+invoices = FeatureEngine.load_invoices_and_map_labels(
+    "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data",
+    autoload=True,
+    verbose=True,
+)
+#%%
+print("\nCreating training and testing data...")
+data = Classifier.create_train_and_test_packet(invoices, features_to_use)
 classifier = Classifier()
+print("Training classifier...")
+classifier.train("Neural Network", data["train_data"], data["train_labels"])
+predictions = classifier.predict_token_classifications(
+    data["test_data"], "Neural Network"
+)
+classifier.prediction_summary(predictions=predictions, labels=data["test_labels"])
+# classifier.recursive_feature_elimination("Support Vector Machine", data["train_data"], data["train_labels"], data["test_data"], data["test_labels"])
 
-#%% Demo 1: create features for each token on the page
-for token in page.grouped_tokens:
-    features = feature_engine.create_features(token, page)
-    print(token)
-    print(len(features), "features")
-    print(features)
-    print(" ")
-"""
-#%% Demo 2: Print tokens grouped by blocks
-#for i, block in page.get_tokens_by_block().items():
 
-for i, block in page.tokens_by_block_and_line.items():
-    print(block)
-    print(" ")
-"""
-#%% Demo 3: Print page
-# page.page.resize((600, 900))
-# page.draw_bounding_boxes("word")
-# print(list(map(lambda x :x.date_values,page.grouped_tokens)))
-# print(list(map(lambda x :x.get_currency(),page.grouped_tokens)))
-# print(list(map(lambda x :x.get_num_label(),page.grouped_tokens)))
-# print(list(map(lambda x :x.get_total_label(),page.grouped_tokens)))
-# print(list(map(lambda x :x.contains_digit,page.grouped_tokens)))
-# print(list(map(lambda x :[x.coordinates, x.text],page.grouped_tokens)))
+#%%
+invoice = Invoice(
+    "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data/circles_1.pdf"
+)
+invoice.do_OCR(verbose=True)
+classifier.predict_invoice_fields(invoice, "Neural Network")
+
+#%%

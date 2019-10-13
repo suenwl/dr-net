@@ -28,10 +28,12 @@ class Token:
         self.address = self.get_address()
         self.num_label = self.get_num_label()
         self.total_label = self.get_total_label()
+        self.amount_label = self.get_amount_label()
         self.date_label = self.get_date_label()
         self.period_label = self.get_period_label()
         self.company = self.get_company()
         self.contains_digit = self.get_contains_digits()
+        self.tax_label = self.get_tax_label()
 
     def __repr__(self):
         return self.text if self.text else str(self.token_structure)
@@ -46,6 +48,16 @@ class Token:
                 if c.isdigit():
                     return True
             return False
+
+    def get_tax_label(self):
+        kw = ["gst", "tax"]
+        negative_kw = ["excl","with","incl"]
+        if self.text:
+            words = self.text.lower().split(" ")
+            no_negative_keywords = not any(word in self.text.lower() for word in negative_kw)
+            keywords_exist = any(word in self.text.lower() for word in kw)
+            if len(words)<4 and no_negative_keywords and keywords_exist:
+                return True
 
     def get_date_label(self):
         kw = ["invoice", "bill", "issued", "receipt"]
@@ -109,10 +121,17 @@ class Token:
 
     # returns the text if "total" or some variant is contained in text and group is fewer than 5 words
     def get_total_label(self):
-        kw = ["total", "Total"]
+        kw = ["total"]
         if self.text:
             for w in kw:
-                if w in self.text and len(self.text.split(" ")) < 5:
+                if w in self.text.lower() and len(self.text.split(" ")) < 5:
+                    return self.text.lower()
+    
+    def get_amount_label(self):
+        kw = ["amount","amt"]
+        if self.text:
+            for w in kw:
+                if w in self.text.lower() and len(self.text.split(" ")) < 5:
                     return self.text.lower()
 
     # returns string for description of number, eg. account number, invoice number
