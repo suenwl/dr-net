@@ -50,7 +50,7 @@ class Classifier:
         }
         # original line without use of grid search to optimise parameters
         # classifier = svm.SVC(gamma=0.001, C=100.0)
-        classifier = svm.SVC(probability=True, gamma=0.001, C=1, kernel="linear")
+        classifier = svm.SVC(probability=True, gamma="scale", C=1, kernel="linear")
         # classifier = GridSearchCV(classifier, parameters, cv=5)
         classifier.fit(data, labels)
         self.models["Support Vector Machine"] = classifier
@@ -61,7 +61,7 @@ class Classifier:
         # multi-layer perceptron (MLP) algorithm
         # consider increasing neuron number to match number of features as data set
         classifier = MLPClassifier(
-            solver="lbfgs", alpha=1e-5, hidden_layer_sizes=(20, 20), random_state=1
+            solver="lbfgs", alpha=1e-5, hidden_layer_sizes=(50, 50, 50), random_state=1
         )
         classifier.fit(data, labels)
         self.models["Neural Network"] = classifier
