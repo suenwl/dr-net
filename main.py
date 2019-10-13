@@ -16,6 +16,8 @@ invoices = FeatureEngine.load_invoices_and_map_labels(
 #%%
 print("\nCreating training and testing data...")
 data = Classifier.create_train_and_test_packet(invoices, features_to_use)
+
+#%%
 classifier = Classifier()
 print("Training classifier with data of dimension", len(data["train_data"][0]))
 classifier.train("Neural Network", data["train_data"], data["train_labels"])

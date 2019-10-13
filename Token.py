@@ -28,10 +28,10 @@ class Token:
         self.currency = self.get_currency()
         self.consumption_period = self.get_period()
         self.address = self.get_address()
-        self.num_label = self.get_num_label()
+        self.num_label,self.invoice_num_label, self.acc_num_label, self.po_num_label = self.get_num_label()
         self.total_label = self.get_total_label()
         self.amount_label = self.get_amount_label()
-        self.date_label = self.get_date_label()
+        self.date_label,self.date_of_invoice_label = self.get_date_label()
         self.period_label = self.get_period_label()
         self.company = self.get_company()
         self.contains_digit = self.get_contains_digits()
@@ -62,15 +62,16 @@ class Token:
                 return True
 
     def get_date_label(self):
+        date_label = None
+        date_of_invoice_label = None
         kw = ["invoice", "bill", "issued", "receipt"]
         if self.text:
             if "date" in self.text.lower():
+                date_label = self.text.lower()
                 if any(word in self.text.lower() for word in kw):
-                    return (
-                        self.text.lower()
-                    )  # Return the entire text if it is specified that it is a invoice date
-                else:
-                    return "date"  # else just return date
+                    date_of_invoice_label = date_label
+                
+        return date_label,date_of_invoice_label
 
     def get_period_label(self):
         kw = ["period"]
@@ -138,11 +139,22 @@ class Token:
 
     # returns string for description of number, eg. account number, invoice number
     def get_num_label(self):
+        num_label = None
+        invoice_num_label = None
+        acc_num_label = None
+        po_num_label = None
         kw = ["no", "no.", "no:", "no.:", "number", "num", "#", "#:", "id", "id:"]
         if self.text:
             text_array = self.text.lower().split(" ")
             if any(word in text_array for word in kw):
-                return self.text.lower()
+                num_label = self.text.lower()
+                if any(word in num_label for word in ["invoice","inv","receipt", "bill"]):
+                    invoice_num_label = num_label
+                elif any(word in num_label for word in ["account","acc","customer", "a/c"]):
+                    acc_num_label = num_label
+                elif any(word in num_label for word in ["po","sales"]):
+                    po_num_label = num_label
+        return num_label,invoice_num_label, acc_num_label, po_num_label
 
     # returns a dictionary of {cur: <prefix> , value: <dollar amt> }
     # eg. {cur: $ , value: 5.00 }
