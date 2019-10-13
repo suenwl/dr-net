@@ -12,7 +12,7 @@ class FeatureEngine:
     @classmethod
     def load_invoices_and_map_labels(self, data_path: str, autoload=False, verbose: bool = False):
         # This tuple represents the number of pages to do OCR for for each invoice. Eg. (2,1) represents do OCR for the first 2 pages, and for the last page
-        RANGE_OF_PAGES_FOR_OCR = (2, 2)
+        RANGE_OF_PAGES_FOR_OCR = (1, 1)
         invoices = []
         pdf_list = list(filter(lambda file_name: file_name.endswith(".pdf"),os.listdir(data_path)))
         for index,filename in enumerate(pdf_list):
@@ -43,9 +43,9 @@ class FeatureEngine:
                     for page in invoice.pages:
                         page.do_OCR(verbose=verbose)
                 else:
-                    for page in invoice.pages[: RANGE_OF_PAGES_FOR_OCR[0]]:
+                    for page in invoice.pages[: RANGE_OF_PAGES_FOR_OCR[0]]: # Initial pages
                         page.do_OCR(verbose=verbose)
-                    for page in invoice.pages[-RANGE_OF_PAGES_FOR_OCR[1] :]:
+                    for page in invoice.pages[-RANGE_OF_PAGES_FOR_OCR[1] :]: #Last pages
                         page.do_OCR(verbose=verbose)
 
                 # Try mapping labels
