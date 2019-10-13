@@ -249,9 +249,8 @@ class Token:
     
      #Assumes if date is available, it is in 1 token
      #Creates date objects for consistency of formats
-    def get_date(selftext):
-        dates = []
-        text = selftext
+    def get_date(self):
+        text = self.text
         if type(text) is str:
             month_names = [
                     "jan",
