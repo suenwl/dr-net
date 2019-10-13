@@ -89,6 +89,8 @@ class Invoice:
                 }
                 page_number = label["page"]
                 page = self.get_page(page_number)
+                if not page.tokens:  # That means no OCR was done
+                    continue
                 token_to_label = page.find_overlapping_token(coordinates)
                 if token_to_label:  # If a token was found
                     if verbose:

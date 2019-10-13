@@ -254,12 +254,12 @@ class OCREngine:
         FOUR_REPEATED_CHAR = (
             lambda token: re.search(r"(.)\1\1\1", token.text) is not None
         )
-        MORE_THAN_FORTY_CHAR = lambda token: len(token.text) > 40
+        IS_LONG = lambda token: len(token.text) > 40 and not token.address
         return list(
             filter(
                 lambda token: not SHORT_TOKEN(token)
                 and not FOUR_REPEATED_CHAR(token)
-                and not MORE_THAN_FORTY_CHAR(token),
+                and not IS_LONG(token),
                 tokens,
             )
         )
