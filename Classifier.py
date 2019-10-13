@@ -55,7 +55,7 @@ class Classifier:
         classifier.fit(data, labels)
         self.models["Support Vector Machine"] = classifier
         # save the model to disk
-        self.save()
+        # self.save()
 
     def train_neural_network(self, data, labels):
         # multi-layer perceptron (MLP) algorithm
@@ -65,13 +65,13 @@ class Classifier:
         )
         classifier.fit(data, labels)
         self.models["Neural Network"] = classifier
-        self.save()
+        # self.save()
 
     def train_naive_bayes(self, data, labels):
         classifier = GaussianNB()
         classifier.fit(data, labels)
         self.models["Naive Bayes"] = classifier
-        self.save()
+        # self.save()
 
     def train_random_forest(self, data, labels):
         classifier = RandomForestClassifier(
@@ -79,7 +79,7 @@ class Classifier:
         )
         classifier.fit(data, labels)
         self.models["Random Forest"] = classifier
-        self.save()
+        # self.save()
 
     def train(self, model_name: str, data, labels, max_features="all"):
         # mlp sensitive to feature scaling, plus NN requires this so we standardise scaling first
@@ -146,11 +146,7 @@ class Classifier:
         random.shuffle(invoices)
         splitting_point = int(len(invoices) * 0.8)
         train_invoices = invoices[:splitting_point]
-        # print("training data", sep = "\n\n")
-        # print(*map(lambda x: x.readable_name, train_invoices), sep = "\n")
         test_invoices = invoices[splitting_point:]
-        # print("testing data", sep = "\n\n")
-        # print(*map(lambda x: x.readable_name, test_invoices), sep = "\n")
 
         train_data, train_labels, train_tokens = cls.get_data_and_labels(
             train_invoices, features_to_use, scale_others=False
