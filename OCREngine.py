@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import nltk
 import cv2
+import re
 
 # nltk.download("stopwords") #Use if nltk stopwords not downloaded
 from nltk.corpus import stopwords
@@ -247,6 +248,22 @@ class OCREngine:
         stopwords_set = set(stopwords.words("english"))
         return list(filter(lambda t: t.text not in stopwords_set, tokens))
 
+    @classmethod
+    def remove_nonsensical(cls, tokens):
+        SHORT_TOKEN = lambda token: len(token.text) < 3
+        FOUR_REPEATED_CHAR = (
+            lambda token: re.search(r"(.)\1\1\1", token.text) is not None
+        )
+        MORE_THAN_FORTY_CHAR = lambda token: len(token.text) > 40
+        return list(
+            filter(
+                lambda token: not SHORT_TOKEN(token)
+                and not FOUR_REPEATED_CHAR(token)
+                and not MORE_THAN_FORTY_CHAR(token),
+                tokens,
+            )
+        )
+
     def OCR(self, image: Image, verbose: bool = False):
         import time
 
@@ -260,14 +277,16 @@ class OCREngine:
             config="pitsync_linear_version==6, textord_noise_rejwords==0， textord_noise_rejrows==0",
         )
         if verbose:
-            print("--- Processed page in %s seconds ---" % (time.time() - start_time))
+            print("--- OCRed page in %s seconds ---" % (time.time() - start_time))
 
         # Do some preliminary processing and grouping of the raw OCR output
         cleaned_OCR_output = self.clean_OCR_output(raw_OCR_output)
         tokens = self.convert_ocr_dataframe_to_token_list(cleaned_OCR_output)
         tokens_by_blocks_and_lines = self.get_tokens_by_block_and_lines(tokens)
 
-        grouped_tokens = self.group_tokens(tokens_by_blocks_and_lines)
+        grouped_tokens = self.remove_nonsensical(
+            self.group_tokens(tokens_by_blocks_and_lines)
+        )
         tokens_without_stopwords = self.remove_stopwords(tokens)
 
         regions = self.convert_ocr_dataframe_to_token_list(
