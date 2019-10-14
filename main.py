@@ -9,8 +9,8 @@ from util import features_to_use
 
 print("Starting...")
 invoices = FeatureEngine.load_invoices_and_map_labels(
-    "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data",
-    autoload=False,
+    "C:/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices",
+    autoload=True,
     verbose=True,
 )
 #%%
@@ -30,7 +30,7 @@ classifier.prediction_summary(predictions=predictions, labels=data["test_labels"
 
 #%%
 invoice = Invoice(
-    "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data/circles_1.pdf"
+    "C:/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices/circles_1.pdf"
 )
 invoice.do_OCR(verbose=True)
 classifier.predict_invoice_fields(invoice, "Neural Network")

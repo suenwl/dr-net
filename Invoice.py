@@ -142,8 +142,8 @@ class InvoicePage:
         )
 
         self.tokens = list(map(create_tokens_from_dict, data_packet["tokens"]))
-        self.grouped_tokens = list(
-            map(create_tokens_from_dict, data_packet["grouped_tokens"])
+        self.grouped_tokens = self.remove_useless_tokens(
+            list(map(create_tokens_from_dict, data_packet["grouped_tokens"]))
         )
         self.regions = list(map(create_tokens_from_dict, data_packet["regions"]))
         self.tokens_by_block_and_line = {
@@ -153,6 +153,54 @@ class InvoicePage:
             }
             for block_num, block_data in data_packet["tokens_by_block_and_line"].items()
         }
+
+    def remove_useless_tokens(self, tokens):
+        out = []
+        whitelist = [
+            *list(map(str, range(0, 10))),
+            "$",
+            "sgd",
+            'usd',
+            'dollar',
+            'amount',
+            'total',
+            'due',
+            'date',
+            'gst',
+            'singapore',
+            'sg',
+            'no',
+            'tax',
+            'invoice',
+            'number',
+            'period',
+            'bill',
+            'acc',
+            'ltd',
+            'pte',
+            'pvt',
+            'balance',
+            'outstanding',
+
+            "jan",
+            "feb",
+            "mar",
+            "apr",
+            "may",
+            "jun",
+            "jul",
+            "aug",
+            "sep",
+            "oct",
+            "nov",
+            "dec",
+        ]
+        for t in tokens:
+            if any(m in t.text.lower() for m in whitelist):
+                out.append(t)
+                #print(len(t.text), "--------", t)
+        # print(sum(list(map(lambda x:len(x.text), tokens)))/ len(tokens))
+        return out
 
     def do_OCR(self, verbose: bool = False):
         if not self.tokens:
