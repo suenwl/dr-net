@@ -61,9 +61,8 @@ class Classifier:
         classifier = MLPClassifier(
             solver="lbfgs",
             alpha=1e-5,
-            hidden_layer_sizes=(50, 50, 50),
-            random_state=1,
-            verbose=True,
+            hidden_layer_sizes=(60, 60, 60),
+            random_state=1
         )
         classifier.fit(data, labels)
         self.models["Neural Network"] = classifier
