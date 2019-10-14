@@ -19,13 +19,12 @@ data = Classifier.create_train_and_test_packet(invoices, features_to_use)
 
 #%%
 classifier = Classifier()
-print("Training classifier with data of dimension", len(data["train_data"][0]))
+print("Training classifier with features of dimension", len(data["train_data"][0]))
 classifier.train("Neural Network", data["train_data"], data["train_labels"])
 predictions = classifier.predict_token_classifications(
     data["test_data"], "Neural Network"
 )
 classifier.prediction_summary(predictions=predictions, labels=data["test_labels"])
-# classifier.recursive_feature_elimination("Support Vector Machine", data["train_data"], data["train_labels"], data["test_data"], data["test_labels"])
 
 
 #%%

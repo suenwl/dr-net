@@ -141,57 +141,57 @@ class Classifier:
     def create_train_and_test_packet(
         cls, invoices, features_to_use, percentage_train: float = 0.8
     ):
-        random.shuffle(invoices)
-        splitting_point = int(len(invoices) * 0.8)
-        train_invoices = invoices[:splitting_point]
-        test_invoices = invoices[splitting_point:]
+        # random.shuffle(invoices)
+        # splitting_point = int(len(invoices) * 0.8)
+        # train_invoices = invoices[:splitting_point]
+        # test_invoices = invoices[splitting_point:]
 
-        train_data, train_labels, train_tokens = cls.get_data_and_labels(
-            train_invoices, features_to_use, scale_others=False
-        )
-        test_data, test_labels, train_tokens = cls.get_data_and_labels(
-            test_invoices, features_to_use, scale_others=False
-        )
-
-        # data, labels, tokens = cls.get_data_and_labels(
-        #     invoices, features_to_use, scale_others=False
+        # train_data, train_labels, train_tokens = cls.get_data_and_labels(
+        #     train_invoices, features_to_use, scale_others=False
+        # )
+        # test_data, test_labels, train_tokens = cls.get_data_and_labels(
+        #     test_invoices, features_to_use, scale_others=False
         # )
 
-        # # Compile data into a dictionary
-        # zipped = list(zip(data, labels, tokens))
-        # dictionary_of_categories = {}
-        # for token in zipped:
-        #     label = token[1]
-        #     if label not in dictionary_of_categories:  # If category does not yet exist
-        #         dictionary_of_categories[label] = []
-        #     else:
-        #         dictionary_of_categories[label].append(token)
+        data, labels, tokens = cls.get_data_and_labels(
+            invoices, features_to_use, scale_others=False
+        )
 
-        # train = []
-        # test = []
+        # Compile data into a dictionary
+        zipped = list(zip(data, labels, tokens))
+        dictionary_of_categories = {}
+        for token in zipped:
+            label = token[1]
+            if label not in dictionary_of_categories:  # If category does not yet exist
+                dictionary_of_categories[label] = []
+            else:
+                dictionary_of_categories[label].append(token)
 
-        # # Shuffle all categories
-        # for category in dictionary_of_categories:
-        #     category_data = dictionary_of_categories[category]
-        #     random.shuffle(category_data)
-        #     splitting_point = int(len(category_data) * percentage_train)
-        #     train.extend(category_data[:splitting_point])
-        #     test.extend(category_data[splitting_point:])
+        train = []
+        test = []
 
-        # random.shuffle(train)
-        # random.shuffle(test)
+        # Shuffle all categories
+        for category in dictionary_of_categories:
+            category_data = dictionary_of_categories[category]
+            random.shuffle(category_data)
+            splitting_point = int(len(category_data) * percentage_train)
+            train.extend(category_data[:splitting_point])
+            test.extend(category_data[splitting_point:])
 
-        # train_data = []
-        # train_labels = []
-        # test_data = []
-        # test_labels = []
+        random.shuffle(train)
+        random.shuffle(test)
 
-        # for data in train:
-        #     train_data.append(data[0])
-        #     train_labels.append(data[1])
-        # for data in test:
-        #     test_data.append(data[0])
-        #     test_labels.append(data[1])
+        train_data = []
+        train_labels = []
+        test_data = []
+        test_labels = []
+
+        for data in train:
+            train_data.append(data[0])
+            train_labels.append(data[1])
+        for data in test:
+            test_data.append(data[0])
+            test_labels.append(data[1])
 
         return {
             "train_data": train_data,
