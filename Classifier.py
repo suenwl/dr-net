@@ -50,28 +50,28 @@ class Classifier:
         }
         # original line without use of grid search to optimise parameters
         # classifier = svm.SVC(gamma=0.001, C=100.0)
-        classifier = svm.SVC(probability=True, gamma=0.001, C=1, kernel="linear")
+        classifier = svm.SVC(probability=True, gamma="scale", C=1, kernel="linear")
         # classifier = GridSearchCV(classifier, parameters, cv=5)
         classifier.fit(data, labels)
         self.models["Support Vector Machine"] = classifier
         # save the model to disk
-        self.save()
+        # self.save()
 
     def train_neural_network(self, data, labels):
         # multi-layer perceptron (MLP) algorithm
         # consider increasing neuron number to match number of features as data set
         classifier = MLPClassifier(
-            solver="lbfgs", alpha=1e-5, hidden_layer_sizes=(20, 20), random_state=1
+            solver="lbfgs", alpha=1e-5, hidden_layer_sizes=(50, 50, 50), random_state=1
         )
         classifier.fit(data, labels)
         self.models["Neural Network"] = classifier
-        self.save()
+        # self.save()
 
     def train_naive_bayes(self, data, labels):
         classifier = GaussianNB()
         classifier.fit(data, labels)
         self.models["Naive Bayes"] = classifier
-        self.save()
+        # self.save()
 
     def train_random_forest(self, data, labels):
         classifier = RandomForestClassifier(
@@ -79,7 +79,7 @@ class Classifier:
         )
         classifier.fit(data, labels)
         self.models["Random Forest"] = classifier
-        self.save()
+        # self.save()
 
     def train(self, model_name: str, data, labels, max_features="all"):
         # mlp sensitive to feature scaling, plus NN requires this so we standardise scaling first
@@ -146,11 +146,7 @@ class Classifier:
         random.shuffle(invoices)
         splitting_point = int(len(invoices) * 0.8)
         train_invoices = invoices[:splitting_point]
-        # print("training data", sep = "\n\n")
-        # print(*map(lambda x: x.readable_name, train_invoices), sep = "\n")
         test_invoices = invoices[splitting_point:]
-        # print("testing data", sep = "\n\n")
-        # print(*map(lambda x: x.readable_name, test_invoices), sep = "\n")
 
         train_data, train_labels, train_tokens = cls.get_data_and_labels(
             train_invoices, features_to_use, scale_others=False
@@ -158,6 +154,46 @@ class Classifier:
         test_data, test_labels, train_tokens = cls.get_data_and_labels(
             test_invoices, features_to_use, scale_others=False
         )
+
+        # data, labels, tokens = cls.get_data_and_labels(
+        #     invoices, features_to_use, scale_others=False
+        # )
+
+        # # Compile data into a dictionary
+        # zipped = list(zip(data, labels, tokens))
+        # dictionary_of_categories = {}
+        # for token in zipped:
+        #     label = token[1]
+        #     if label not in dictionary_of_categories:  # If category does not yet exist
+        #         dictionary_of_categories[label] = []
+        #     else:
+        #         dictionary_of_categories[label].append(token)
+
+        # train = []
+        # test = []
+
+        # # Shuffle all categories
+        # for category in dictionary_of_categories:
+        #     category_data = dictionary_of_categories[category]
+        #     random.shuffle(category_data)
+        #     splitting_point = int(len(category_data) * percentage_train)
+        #     train.extend(category_data[:splitting_point])
+        #     test.extend(category_data[splitting_point:])
+
+        # random.shuffle(train)
+        # random.shuffle(test)
+
+        # train_data = []
+        # train_labels = []
+        # test_data = []
+        # test_labels = []
+
+        # for data in train:
+        #     train_data.append(data[0])
+        #     train_labels.append(data[1])
+        # for data in test:
+        #     test_data.append(data[0])
+        #     test_labels.append(data[1])
 
         return {
             "train_data": train_data,
@@ -223,24 +259,4 @@ class Classifier:
     def select_features(cls, data, labels, max_number="all"):
         select = SelectKBest(chi2, k=max_number).fit(data, labels)
         list(select.scores_)
-
-    @classmethod
-    # bugs to fix to resolve: rfe = rfe.fit(train_data,train_labels)
-    # to do after: pick num of features that maximises accuracy
-    def recursive_feature_elimination(
-        self, model_name: str, train_data, train_labels, test_data, test_labels
-    ):
-        model = self.models["Support Vector Machine"]
-        train_data = normalize(train_data)
-        train_labels = LabelEncoder().fit_transform(train_labels)
-        num_features = 20
-        # high_score=0
-        # Variable to store the optimum features
-        # nof=0
-        # score_list =[]
-        rfe = RFE(model, num_features)
-        rfe = rfe.fit(train_data, train_labels)
-        # print summaries for the selection of attributes
-        print(rfe.support_)
-        print(rfe.ranking_)
 

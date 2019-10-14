@@ -4,7 +4,7 @@ from IPython.display import clear_output, display
 
 
 def convert_pdf_to_image(PDF_path):
-    document = fitz.open(PDF_path, width=1653, height=2339)
+    document = fitz.open(PDF_path, width=3307, height=4678)
     pages = []
     for page in document:
         zoom = 3
@@ -82,14 +82,14 @@ features_to_use = [
     "contains_date",
     "contains_currency",
     "contains_address",
-    "contains_num_label",
-    "contains_total_label",
-    "contains_amount_label",
-    "contains_date_label",
-    "contains_date_of_invoice_label",
+    # "contains_num_label",
+    # "contains_total_label",
+    # "contains_amount_label",
+    # "contains_date_label",
+    # "contains_date_of_invoice_label",
     "contains_digit",
     "contains_company",
-    "contains_tax_label",
+    # "contains_tax_label",
     # "vert_align_to_cell_w_date",
     # "vert_align_to_cell_w_currency",
     # "vert_align_to_cell_w_address",
@@ -120,7 +120,11 @@ features_to_use = [
     # "rel_dist_nearest_cell_w_currency",
     # "rel_dist_nearest_cell_w_address",
     "rel_dist_nearest_cell_w_datelabel",
+    "rel_dist_nearest_cell_w_invoicedatelabel",
     "rel_dist_nearest_cell_w_numlabel",
+    "rel_dist_nearest_cell_w_invoicenumlabel",
+    "rel_dist_nearest_cell_w_accnumlabel",
+    "rel_dist_nearest_cell_w_ponumlabel",
     "rel_dist_nearest_cell_w_totallabel",
     "rel_dist_nearest_cell_w_amountlabel",
     # "rel_dist_nearest_cell_w_digit",
