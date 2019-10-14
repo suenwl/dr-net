@@ -7,8 +7,6 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import normalize
-from sklearn.feature_selection import SelectKBest, chi2
 
 from sklearn.metrics import classification_report
 import pickle
@@ -61,7 +59,11 @@ class Classifier:
         # multi-layer perceptron (MLP) algorithm
         # consider increasing neuron number to match number of features as data set
         classifier = MLPClassifier(
-            solver="lbfgs", alpha=1e-5, hidden_layer_sizes=(50, 50, 50), random_state=1
+            solver="lbfgs",
+            alpha=1e-5,
+            hidden_layer_sizes=(50, 50, 50),
+            random_state=1,
+            verbose=True,
         )
         classifier.fit(data, labels)
         self.models["Neural Network"] = classifier
@@ -83,11 +85,7 @@ class Classifier:
 
     def train(self, model_name: str, data, labels, max_features="all"):
         # mlp sensitive to feature scaling, plus NN requires this so we standardise scaling first
-        data = normalize(data)
         labels = list(map(lambda label: category_mappings[label], labels))
-        # self.feature_selector = SelectKBest(chi2, k=max_features).fit(data, labels)
-        # data = self.feature_selector.transform(data)
-        # labels = scaler.transform(labels)
         """ Used to train a specific model """
         if model_name == "Support Vector Machine":
             self.train_support_vector_machine(data, labels)
