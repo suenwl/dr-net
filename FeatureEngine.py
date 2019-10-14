@@ -1,6 +1,7 @@
 from typing import List
 from Token import Token
 from Invoice import InvoicePage
+from util import print_progress
 import math
 import json
 import os
@@ -9,12 +10,22 @@ from Invoice import Invoice, InvoicePage
 
 class FeatureEngine:
     @classmethod
-    def map_labels_to_invoice_OCR(self, data_path: str, verbose: bool = False):
+    def load_invoices_and_map_labels(self, data_path: str, autoload=False, verbose: bool = False):
         # This tuple represents the number of pages to do OCR for for each invoice. Eg. (2,1) represents do OCR for the first 2 pages, and for the last page
         RANGE_OF_PAGES_FOR_OCR = (2, 2)
-        for filename in os.listdir(data_path):
-            if filename.endswith(".pdf"):
+        invoices = []
+        pdf_list = list(filter(lambda file_name: file_name.endswith(".pdf"),os.listdir(data_path)))
+        for index,filename in enumerate(pdf_list):
+            invoice = Invoice(data_path + "/" + filename)
 
+            if autoload:
+                loaded = invoice.load_data()
+                if loaded:
+                    invoices.append(invoice)
+                else:
+                    raise Exception("Autoloading of invoice",invoice.readable_name,"failed. Check if the savefile exists")
+
+            else:
                 # First check if json tags are present. If they aren't, skip this pdf
                 if not os.path.exists(data_path + "/" + filename[:-4] + ".json"):
                     print(
@@ -25,22 +36,27 @@ class FeatureEngine:
                     continue
 
                 # Next, do OCR for the relevant pages in the invoice
-                invoice = Invoice(data_path + "/" + filename)
                 if verbose:
-                    print("Processing:", invoice.readable_name)
+                    print("\n Processing:", invoice.readable_name)
 
                 if invoice.length() < sum(RANGE_OF_PAGES_FOR_OCR):
                     for page in invoice.pages:
                         page.do_OCR(verbose=verbose)
                 else:
-                    for page in invoice.pages[: RANGE_OF_PAGES_FOR_OCR[0]]:
+                    for page in invoice.pages[: RANGE_OF_PAGES_FOR_OCR[0]]: # Initial pages
                         page.do_OCR(verbose=verbose)
-                    for page in invoice.pages[-RANGE_OF_PAGES_FOR_OCR[1] :]:
+                    for page in invoice.pages[-RANGE_OF_PAGES_FOR_OCR[1] :]: #Last pages
                         page.do_OCR(verbose=verbose)
 
                 # Try mapping labels
                 invoice.map_labels(verbose=verbose)
+                invoices.append(invoice)
                 invoice.save_data()
+
+            if verbose:
+                print_progress(index+1,len(pdf_list),"Loading invoices ")
+
+        return invoices
 
     @classmethod
     def create_features(self, token: Token, invoicePage: InvoicePage):
@@ -75,6 +91,11 @@ class FeatureEngine:
 
         # checks if two tokens are aligned vertically within a margin of error (checks midpoint, left boundary, right boundary)
         def is_vert_aligned(t1, t2, moe):
+            """Returns true if t2 is vertically aligned with t1 and is below t1"""
+            t2_below_t1 = t1.coordinates["y"] - t2.coordinates["y"] < 0
+            if not t2_below_t1:
+                return False
+
             if abs(t1.coordinates["x"] - t2.coordinates["x"]) < moe:
                 return True
             if (
@@ -93,6 +114,11 @@ class FeatureEngine:
 
         # checks if two tokens are aligned horizontally within a margin of error (checks midpoint, top boundary, bottom boundary)
         def is_hori_aligned(t1, t2, moe):
+            """Returns true if t2 is horizontally aligned with t1 and is to the right of t1"""
+            t2_to_right_of_t1 = t1.coordinates["x"] - t2.coordinates["x"] < 0
+            if not t2_to_right_of_t1:
+                return False
+
             if abs(t1.coordinates["y"] - t2.coordinates["y"]) < moe:
                 return True
             if (
@@ -145,8 +171,8 @@ class FeatureEngine:
                 max_x = t.coordinates["x"] + t.coordinates["width"]
             if t.coordinates["y"] + t.coordinates["height"] > max_y:
                 max_y = t.coordinates["y"] + t.coordinates["height"]
-        features["dist_top_outer"] = token.coordinates["y"] - min_x
-        features["dist_left_outer"] = token.coordinates["x"] - min_y
+        features["dist_top_outer"] = token.coordinates["y"] - min_y
+        features["dist_left_outer"] = token.coordinates["x"] - min_x
         features["dist_bottom_outer"] = max_y - (
             token.coordinates["y"] + token.coordinates["height"]
         )
@@ -196,13 +222,17 @@ class FeatureEngine:
         features["percentile_height"] = perc_h / len(invoicePage.grouped_tokens)
 
         # boolean if token contains fields
-        features["contains_date"] = 0 if token.date_values else 1
-        features["contains_currency"] = 0 if token.currency else 1
-        features["contains_address"] = 0 if token.address else 1
-        features["contains_num_label"] = 0 if token.num_label else 1
-        features["contains_total_label"] = 0 if token.total_label else 1
-        features["contains_date_label"] = 0 if token.date_label else 1
-        features["contains_digit"] = 0 if token.contains_digit else 1
+        features["contains_date"] = 1 if token.date_values else 0
+        features["contains_currency"] = 1 if token.currency else 0
+        features["contains_address"] = 1 if token.address else 0
+        features["contains_num_label"] = 1 if token.num_label else 0
+        features["contains_total_label"] = 1 if token.total_label else 0
+        features["contains_amount_label"] = 1 if token.amount_label else 0
+        features["contains_date_label"] = 1 if token.date_label else 0
+        features["contains_date_of_invoice_label"] = 1 if features["contains_date_label"] and len(token.date_label.split(" ")) > 1 else 0 # This is a more specific feature that the one above
+        features["contains_digit"] = 1 if token.contains_digit else 0
+        features["contains_company"] = 1 if token.company else 0
+        features["contains_tax_label"] = 1 if token.tax_label else 0
 
         # boolean if aligned with selected tokens
         moe = 10  # arbitary 10 pixle margin of error
@@ -210,17 +240,30 @@ class FeatureEngine:
         features["vert_align_to_cell_w_currency"] = 0
         features["vert_align_to_cell_w_address"] = 0
         features["vert_align_to_cell_w_datelabel"] = 0
+        features["vert_align_to_cell_w_dateofinvoicelabel"] = 0
         features["vert_align_to_cell_w_numlabel"] = 0
         features["vert_align_to_cell_w_totallabel"] = 0
+        features["vert_align_to_cell_w_amountlabel"] = 0
         features["vert_align_to_cell_w_digit"] = 0
+        features["vert_align_to_cell_w_invoicenum_label"] = 0
+        features["vert_align_to_cell_w_accountnum_label"] = 0
+        features["vert_align_to_cell_w_ponum_label"] = 0
+        features["vert_align_to_cell_w_tax_label"] = 0
 
         features["hori_align_to_cell_w_date"] = 0
         features["hori_align_to_cell_w_currency"] = 0
         features["hori_align_to_cell_w_address"] = 0
         features["hori_align_to_cell_w_datelabel"] = 0
+        features["hori_align_to_cell_w_dateofinvoicelabel"] = 0
         features["hori_align_to_cell_w_numlabel"] = 0
         features["hori_align_to_cell_w_totallabel"] = 0
+        features["hori_align_to_cell_w_amountlabel"] = 0
         features["hori_align_to_cell_w_digit"] = 0
+        features["hori_align_to_cell_w_invoicenum_label"] = 0
+        features["hori_align_to_cell_w_accountnum_label"] = 0
+        features["hori_align_to_cell_w_ponum_label"] = 0
+        features["hori_align_to_cell_w_tax_label"] = 0
+        
 
         for t in invoicePage.grouped_tokens:
             if t is not token:
@@ -233,12 +276,25 @@ class FeatureEngine:
                         features["vert_align_to_cell_w_address"] = 1
                     if t.date_label:
                         features["vert_align_to_cell_w_datelabel"] = 1
+                    if t.date_of_invoice_label:
+                        features["vert_align_to_cell_w_dateofinvoicelabel"] = 1 
                     if t.num_label:
                         features["vert_align_to_cell_w_numlabel"] = 1
+                    if t.invoice_num_label:
+                        features["vert_align_to_cell_w_invoicenum_label"] = 1
+                    if t.acc_num_label:
+                        features["vert_align_to_cell_w_accountnum_label"] = 1
+                    if t.po_num_label:
+                        features["vert_align_to_cell_w_ponum_label"] = 1
                     if t.total_label:
                         features["vert_align_to_cell_w_totallabel"] = 1
+                    if t.amount_label:
+                        features["vert_align_to_cell_w_accountnum_label"] = 1
                     if t.contains_digit:
                         features["vert_align_to_cell_w_digit"] = 1
+                    if t.tax_label:
+                        features["vert_align_to_cell_w_tax_label"] = 1
+
 
                 if is_hori_aligned(t, token, moe):
                     if t.date_values:
@@ -249,21 +305,40 @@ class FeatureEngine:
                         features["hori_align_to_cell_w_address"] = 1
                     if t.date_label:
                         features["hori_align_to_cell_w_datelabel"] = 1
+                    if t.date_of_invoice_label:
+                        features["hori_align_to_cell_w_dateofinvoicelabel"] = 1 
                     if t.num_label:
                         features["hori_align_to_cell_w_numlabel"] = 1
+                    if t.invoice_num_label:
+                        features["hori_align_to_cell_w_invoicenum_label"] = 1
+                    if t.acc_num_label:
+                        features["hori_align_to_cell_w_accountnum_label"] = 1
+                    if t.po_num_label:
+                        features["hori_align_to_cell_w_ponum_label"] = 1
                     if t.total_label:
                         features["hori_align_to_cell_w_totallabel"] = 1
+                    if t.amount_label:
+                        features["hori_align_to_cell_w_accountnum_label"] = 1
                     if t.contains_digit:
                         features["hori_align_to_cell_w_digit"] = 1
+                    if t.tax_label:
+                        features["hori_align_to_cell_w_tax_label"] = 1
+                    
 
         # dist to nearest cell with field (inf if no field in page)
         features["dist_nearest_cell_w_date"] = math.inf
         features["dist_nearest_cell_w_currency"] = math.inf
         features["dist_nearest_cell_w_address"] = math.inf
         features["dist_nearest_cell_w_datelabel"] = math.inf
+        features["dist_nearest_cell_w_invoicedatelabel"] = math.inf
         features["dist_nearest_cell_w_numlabel"] = math.inf
+        features["dist_nearest_cell_w_invoicenumlabel"] = math.inf
+        features["dist_nearest_cell_w_accnumlabel"] = math.inf
+        features["dist_nearest_cell_w_ponumlabel"] = math.inf
         features["dist_nearest_cell_w_totallabel"] = math.inf
+        features["dist_nearest_cell_w_amountlabel"] = math.inf
         features["dist_nearest_cell_w_digit"] = math.inf
+        features["dist_nearest_cell_w_tax_label"] = math.inf
 
         for t in invoicePage.grouped_tokens:
             if t is not token:
@@ -276,34 +351,43 @@ class FeatureEngine:
                     features["dist_nearest_cell_w_address"] = dist
                 if t.date_label and dist < features["dist_nearest_cell_w_datelabel"]:
                     features["dist_nearest_cell_w_datelabel"] = dist
+                if t.date_of_invoice_label and dist < features["dist_nearest_cell_w_invoicedatelabel"]:
+                    features["dist_nearest_cell_w_invoicedatelabel"] = dist
                 if t.num_label and dist < features["dist_nearest_cell_w_numlabel"]:
                     features["dist_nearest_cell_w_numlabel"] = dist
+                if t.invoice_num_label and dist < features["dist_nearest_cell_w_invoicenumlabel"]:
+                    features["dist_nearest_cell_w_invoicenumlabel"] = dist
+                if t.acc_num_label and dist < features["dist_nearest_cell_w_accnumlabel"]:
+                    features["dist_nearest_cell_w_accnumlabel"] = dist
+                if t.po_num_label and dist < features["dist_nearest_cell_w_ponumlabel"]:
+                    features["dist_nearest_cell_w_ponumlabel"] = dist
                 if t.total_label and dist < features["dist_nearest_cell_w_totallabel"]:
                     features["dist_nearest_cell_w_totallabel"] = dist
+                if t.total_label and dist < features["dist_nearest_cell_w_amountlabel"]:
+                    features["dist_nearest_cell_w_amountlabel"] = dist
                 if t.contains_digit and dist < features["dist_nearest_cell_w_digit"]:
                     features["dist_nearest_cell_w_digit"] = dist
+                if t.tax_label and dist < features["dist_nearest_cell_w_tax_label"]:
+                    features["dist_nearest_cell_w_tax_label"] = dist
 
-        features["rel_dist_nearest_cell_w_date"] = (
-            features["dist_nearest_cell_w_date"] / invoice_diag
-        )
-        features["rel_dist_nearest_cell_w_currency"] = (
-            features["dist_nearest_cell_w_currency"] / invoice_diag
-        )
-        features["rel_dist_nearest_cell_w_address"] = (
-            features["dist_nearest_cell_w_address"] / invoice_diag
-        )
-        features["rel_dist_nearest_cell_w_datelabel"] = (
-            features["dist_nearest_cell_w_datelabel"] / invoice_diag
-        )
-        features["rel_dist_nearest_cell_w_numlabel"] = (
-            features["dist_nearest_cell_w_numlabel"] / invoice_diag
-        )
-        features["rel_dist_nearest_cell_w_totallabel"] = (
-            features["dist_nearest_cell_w_totallabel"] / invoice_diag
-        )
-        features["rel_dist_nearest_cell_w_digit"] = (
-            features["dist_nearest_cell_w_digit"] / invoice_diag
-        )
+        DEFAULT_DISTANCE = 0.75 # This is arbitrary
+        for feature in features:
+            if "dist_nearest" in feature and math.isinf(features[feature]):
+                features[feature] = invoice_diag*DEFAULT_DISTANCE
+
+        features["rel_dist_nearest_cell_w_date"] = features["dist_nearest_cell_w_date"] / invoice_diag
+        features["rel_dist_nearest_cell_w_currency"] = features["dist_nearest_cell_w_currency"] / invoice_diag
+        features["rel_dist_nearest_cell_w_address"] = features["dist_nearest_cell_w_address"] / invoice_diag
+        features["rel_dist_nearest_cell_w_datelabel"] = features["dist_nearest_cell_w_datelabel"] / invoice_diag
+        features["rel_dist_nearest_cell_w_invoicedatelabel"] = features["dist_nearest_cell_w_invoicedatelabel"] / invoice_diag
+        features["rel_dist_nearest_cell_w_numlabel"] = features["dist_nearest_cell_w_numlabel"] / invoice_diag
+        features["rel_dist_nearest_cell_w_invoicenumlabel"] = features["dist_nearest_cell_w_invoicenumlabel"] / invoice_diag
+        features["rel_dist_nearest_cell_w_accnumlabel"] = features["dist_nearest_cell_w_accnumlabel"] / invoice_diag
+        features["rel_dist_nearest_cell_w_ponumlabel"] = features["dist_nearest_cell_w_ponumlabel"] / invoice_diag
+        features["rel_dist_nearest_cell_w_totallabel"] = features["dist_nearest_cell_w_totallabel"] / invoice_diag
+        features["rel_dist_nearest_cell_w_amountlabel"] = features["dist_nearest_cell_w_amountlabel"] / invoice_diag
+        features["rel_dist_nearest_cell_w_digit"] = features["dist_nearest_cell_w_digit"] / invoice_diag
+        features["rel_dist_nearest_cell_w_tax_label"] = features["dist_nearest_cell_w_tax_label"] / invoice_diag
 
         """
         features TODO:

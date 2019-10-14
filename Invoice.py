@@ -6,6 +6,7 @@ from Token import Token
 from util import convert_pdf_to_image
 import json
 import re
+import os
 
 
 class Invoice:
@@ -36,11 +37,15 @@ class Invoice:
         if not file_name:
             file_path = file_path_stem + self.readable_name[:-4] + "-savefile.json"
 
+        if not os.path.exists(file_path):  # No save file
+            return False
+
         with open(file_path, "r") as save_file:
             data = json.load(save_file)
             for i, page_data in enumerate(data["pages"]):
                 page = self.pages[i]
                 page.load_data(page_data)
+            return True
 
     def get_all_tokens(self):
         ocr_engine = OCREngine()
@@ -84,15 +89,18 @@ class Invoice:
                 }
                 page_number = label["page"]
                 page = self.get_page(page_number)
+                if not page.tokens:  # That means no OCR was done
+                    continue
                 token_to_label = page.find_overlapping_token(coordinates)
-                if verbose:
-                    print(
-                        "FOUND TOKEN",
-                        token_to_label,
-                        "Setting category as",
-                        category_label,
-                    )
-                token_to_label.set_category(category_label)
+                if token_to_label:  # If a token was found
+                    if verbose:
+                        print(
+                            "FOUND TOKEN",
+                            token_to_label,
+                            "Setting category as",
+                            category_label,
+                        )
+                    token_to_label.set_category(category_label)
 
 
 class InvoicePage:
@@ -124,7 +132,14 @@ class InvoicePage:
         ):  # If not all data in data_packet is present
             return  # We probably didn't do OCR for this page previously, so just return
 
-        create_tokens_from_dict = lambda dictionary: Token(**dictionary)
+        create_tokens_from_dict = lambda dictionary: Token(
+            **{
+                k: v
+                for k, v in dictionary.items()
+                if k
+                in ["text", "coordinates", "confidence", "token_structure", "category"]
+            }
+        )
 
         self.tokens = list(map(create_tokens_from_dict, data_packet["tokens"]))
         self.grouped_tokens = list(
@@ -160,26 +175,16 @@ class InvoicePage:
         )
 
         return filtered_tokens
-    ''' deprecated for now
+
+    """ deprecated for now
     def remove_stopwords(self):
         if self.tokens:
             stopwords_set = set(stopwords.words("english"))
             self.tokens_no_stopwords = list(
                 filter(lambda t: t.text not in stopwords_set, self.tokens)
             )
-    '''
-    def get_company_name(self):
-        if not self.tokens_by_block:
-            self.get_tokens_by_block()
-        target = set(["limited", "limited.", "ltd", "ltd."])
-        name_candidates = []
-        for block in self.tokens_by_block.values():
-            text_block = list(map(lambda t: t.text, block))
-            for index, text in enumerate(text_block):
-                if text.lower() in target:
-                    name_candidates.append(text_block[index - 3 : index])
-        print(name_candidates)
-        
+    """
+
     def find_overlapping_token(self, coordinates):
         OVERLAP_THRESHOLD = 0.3
         max_overlap = 0
@@ -190,12 +195,13 @@ class InvoicePage:
             max_overlap = max(max_overlap, percentage_overlap)
             if percentage_overlap > 0:  # Temporarily setting this to any overlap
                 return token
-        raise Exception(
-            "No significant overlap between token and label at",
-            coordinates,
-            "was found. Maximum overlap was",
-            max_overlap,
-        )
+        return False  # No overlapping tokens found
+        # raise Exception(
+        #     "No significant overlap between token and label at",
+        #     coordinates,
+        #     "was found. Maximum overlap was",
+        #     max_overlap,
+        # )
 
     def draw_bounding_boxes(
         self, detail="group", tags=True
@@ -273,7 +279,11 @@ class ObjectEncoder(json.JSONEncoder):
         if isinstance(obj, Token):
             return obj.__dict__
         elif isinstance(obj, InvoicePage):
-            return {k: v for k, v in obj.__dict__.items() if k != "page"}
+            return {
+                k: v
+                for k, v in obj.__dict__.items()
+                if k not in ["page", "processed_page"]
+            }
         elif isinstance(obj, Invoice):
             return obj.__dict__
         else:
