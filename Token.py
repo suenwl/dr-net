@@ -26,7 +26,7 @@ class Token:
         # feature related fields
         self.date_values = self.get_dates()
         self.currency, self.currency_value = self.get_currency()
-        self.consumption_period = self.get_period()
+        self.consumption_period_dates = self.is_consumption_period()
         self.address = self.get_address()
         self.num_label,self.invoice_num_label, self.acc_num_label, self.po_num_label = self.get_num_label()
         self.total_label = self.get_total_label()
@@ -367,10 +367,13 @@ class Token:
                         dates.append(text_list[0])
         return dates """
     
-    # checks if token itself is a consumption period and returns a boolean
+    # checks if token itself is a consumption period of 2 dates
+    # assumes dates are in the right format: earlier date followed by later date
+    # returns None or a list of 2 dates ordered by start / end
+    # output example: [['2019-04-14'], ['2019-05-13']]
     def is_consumption_period(self):
+        consumption_dates = []
         text = self.text
-        boolean = False
         if type(text) is str:
             month_names = set(
                 [
@@ -390,18 +393,83 @@ class Token:
             )
              # checks for numerical months using regex
             text_nospaces = text.replace(" ", "")
-            #possibilities -> same month or 2 diff months
-        return boolean
+            
+            #single token
+            # extracts out 14/04/19-13/05/19 format       
+            re_date_slash = re.search("\d{1,2}[/]\d{1,2}[/]\d{2,4}[-]\d{1,2}[/]\d{1,2}[/]\d{2,4}", text_nospaces)
+            
+            if re_date_slash:
+                for date in re_date_slash.group(0).split("-"):
+                    #append to self
+                    try:
+                        consumption_dates.append(get_dates(date))
+                    except:
+                        pass
+                if consumption_dates!=[] and len(consumption_dates)==2:
+                    return consumption_dates
+                    
+            # extracts out 15Jun2019-14Jul2019 format
+            re_date_months = re.search("\d{1,2}[a-zA-Z]{3}\d{2,4}[-]\d{1,2}[a-zA-Z]{3}\d{2,4}", text_nospaces)
+            if re_date_months:
+                for date in re_date_months.group(0).split("-"):
+                    #append to self
+                    try:
+                        consumption_dates.append(get_dates(date))
+                    except:
+                        pass
+                if consumption_dates!=[] and len(consumption_dates)==2:
+                    return consumption_dates
+            
+            # extract out 01-31May2018/ 01-31May18 format
+            re_date_samemth = re.search("\d{1,2}[-]\d{1,2}[a-zA-Z]{3}\d{2,4}", text_nospaces)
+            if re_date_samemth:
+                mth_position = -1
+                split_date = re_date_samemth.group(0).lower().split("-")
+                for month in month_names:
+                    if int(split_date[1].find(month))!=-1: #month exists
+                        mth_position = int(split_date[1].find(month))
+                if mth_position!=-1:
+                    later_date = split_date[1]
+                    earlier_date = split_date[0] + split_date[1][2:]
+                    try:
+                        consumption_dates.append(get_dates(earlier_date))
+                        consumption_dates.append(get_dates(later_date))
+                        return consumption_dates
+                    except:
+                        pass
+            
+            # extract out 23Aug-22Sep2018 format
+            re_date_sameyr = re.search("\d{1,2}[a-zA-Z]{3}[-]\d{1,2}[a-zA-Z]{3}\d{2,4}", text_nospaces)
+            if re_date_sameyr:
+                mth_position = -1
+                split_date = re_date_sameyr.group(0).lower().split("-")
+                for month in month_names:
+                    if int(split_date[1].find(month))!=-1: #month exists
+                        mth_position = int(split_date[1].find(month))
+                if mth_position!=-1:
+                    later_date = split_date[1]
+                    earlier_date = split_date[0] + split_date[1][mth_position+3:]
+                    try:
+                        consumption_dates.append(get_dates(earlier_date))
+                        consumption_dates.append(get_dates(later_date))
+                        return consumption_dates
+                    except:
+                        pass
         
-
-
-    # returns a dict of 2 dates {earlier_date: date object, later_date: date object }
-    # to be implemented
-    def get_period(self):
-                try:
-                    return None
-                except:
-                    return None
+        
+    # =============================================================================
+      # Todo: deal with more variations of consumption periods
+      #placeholder for future multitokens assuming combined
+    #         period_multi_token = {1: ["23-Mar-2018", "to", "01-Jun-2018"], 
+    #                       2: [" Service Description for March 2019", " -"," February 2020 "], 
+    #                       3: ["08/06/2016", " to", "07/06/2017 "], 
+    #                       4: ["05 Sep 2018", " -", "04 Sep 2019"], #covered case
+    #                       5: ["Sep", " 1", "", " 2017", " -", " Sep", " 30", ""," 2017"]} #covered
+    # =============================================================================
+            
+            #possibilities -> same month or 2 diff months
+        if consumption_dates==[]:
+            return None
 
     def set_category(self, category: str):
         self.category = category
