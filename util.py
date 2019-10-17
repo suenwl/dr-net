@@ -81,6 +81,7 @@ features_to_use = [
     # "percentile_height",
     "contains_date",
     "contains_currency",
+    "contains_currency_value",
     "contains_address",
     # "contains_num_label",
     # "contains_total_label",

@@ -25,7 +25,7 @@ class Token:
 
         # feature related fields
         self.date_values = self.get_dates()
-        self.currency = self.get_currency()
+        self.currency, self.currency_value = self.get_currency()
         self.consumption_period = self.get_period()
         self.address = self.get_address()
         self.num_label,self.invoice_num_label, self.acc_num_label, self.po_num_label = self.get_num_label()
@@ -159,9 +159,10 @@ class Token:
     # returns a dictionary of {cur: <prefix> , value: <dollar amt> }
     # eg. {cur: $ , value: 5.00 }
     def get_currency(self):
-        currencies = ["$", "¥", "dollar", "SGD", "USD", "US$", "SG$", "$SG", "$US"]
+        generic_currencies = ["$", "dollar"]
+        specific_currencies = ["¥", "SGD", "HKD" "USD", "US$", "SG$", "$SG", "$US", "S$", "SINGAPORE DOLLAR"]
         out = {}
-        for cur in currencies:
+        for cur in generic_currencies + specific_currencies:
             if self.text and cur in self.text:
                 out["cur"] = cur
                 start = self.text.index(cur) + len(cur)
@@ -171,9 +172,14 @@ class Token:
                         break
                 try:
                     out["val"] = float(self.text[start : i + 1])
-                    return out
+                    if out["cur"] in specific_currencies:
+                        return out["cur"], out["val"] # Only return currency if it refers to a specific currency
+                    else:
+                        return None, out["val"]
                 except:
-                    return None
+                    if out["cur"] in specific_currencies:
+                        return out["cur"], None
+        return None, None
     
     #Assumes if date is available, it is in 1 token
     #Creates date objects for consistency of formats
