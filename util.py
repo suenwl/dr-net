@@ -4,7 +4,7 @@ from IPython.display import clear_output, display
 
 
 def convert_pdf_to_image(PDF_path):
-    document = fitz.open(PDF_path, width=3307, height=4678)
+    document = fitz.open(PDF_path, width=1653, height=2339)
     pages = []
     for page in document:
         zoom = 3
@@ -81,6 +81,7 @@ features_to_use = [
     # "percentile_height",
     "contains_date",
     "contains_currency",
+    "contains_currency_value",
     "contains_address",
     # "contains_num_label",
     # "contains_total_label",
