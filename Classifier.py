@@ -59,11 +59,7 @@ class Classifier:
         # multi-layer perceptron (MLP) algorithm
         # consider increasing neuron number to match number of features as data set
         classifier = MLPClassifier(
-            solver="lbfgs",
-            alpha=1e-5,
-            hidden_layer_sizes=(50, 50, 50),
-            random_state=1,
-            verbose=True,
+            solver="lbfgs", alpha=1e-5, hidden_layer_sizes=(50, 50, 50), random_state=1
         )
         classifier.fit(data, labels)
         self.models["Neural Network"] = classifier
