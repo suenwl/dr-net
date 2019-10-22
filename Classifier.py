@@ -53,7 +53,7 @@ class Classifier:
         classifier.fit(data, labels)
         self.models["Support Vector Machine"] = classifier
         # save the model to disk
-        # self.save()
+        self.save()
 
     def train_neural_network(self, data, labels):
         # multi-layer perceptron (MLP) algorithm
@@ -63,13 +63,13 @@ class Classifier:
         )
         classifier.fit(data, labels)
         self.models["Neural Network"] = classifier
-        # self.save()
+        self.save()
 
     def train_naive_bayes(self, data, labels):
         classifier = GaussianNB()
         classifier.fit(data, labels)
         self.models["Naive Bayes"] = classifier
-        # self.save()
+        self.save()
 
     def train_random_forest(self, data, labels):
         classifier = RandomForestClassifier(
@@ -77,7 +77,7 @@ class Classifier:
         )
         classifier.fit(data, labels)
         self.models["Random Forest"] = classifier
-        # self.save()
+        self.save()
 
     def train(self, model_name: str, data, labels, max_features="all"):
         # mlp sensitive to feature scaling, plus NN requires this so we standardise scaling first
