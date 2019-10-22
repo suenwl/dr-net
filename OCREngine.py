@@ -259,7 +259,7 @@ class OCREngine:
         IS_LONG = lambda token: len(token.text) > 40 and not token.address
         return list(
             filter(
-                lambda token: A_TOKEN
+                lambda token: A_TOKEN(token)
                 and not SHORT_TOKEN(token)
                 and not FOUR_REPEATED_CHAR(token)
                 and not IS_LONG(token),
