@@ -28,10 +28,17 @@ classifier.prediction_summary(predictions=predictions, labels=data["test_labels"
 
 
 #%%
-invoice = Invoice(
-    "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data/circles_1.pdf"
+import json
+
+invoices_perf = classifier.sort_invoices_by_predictive_accuracy(
+    invoices, "Neural Network"
 )
-invoice.do_OCR(verbose=True)
-classifier.predict_invoice_fields(invoice, "Neural Network")
+with open("invoice scores.json", "w") as f:
+    f.write(json.dumps(invoices_perf))
+print("Worst 20 performers:")
+for invoice in invoices_perf[:20]:
+    print(
+        f"Name of invoice: {invoice['name']}     Accuracy: {invoice['overall_accuracy']}"
+    )
 
 #%%
