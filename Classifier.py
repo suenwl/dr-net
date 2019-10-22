@@ -242,6 +242,34 @@ class Classifier:
 
         return predicted_categories
 
+    def sort_invoices_by_predictive_accuracy(self, invoices, model_name: str):
+        """
+        Takes in a list of invoices, gets their respective predictions using a particular model,
+        and then returns a dictionary for each invoice with the overall accuracy, and boolean
+        for each category to signify whether that category was predicted correctly
+        :returns : A list of dictionaries with three keys (name, overall_accuracy, and detailed_accuracy),
+            sorted in an ascending manner according to the overall accuracy
+        """
+        invoice_predictive_accuracies = []
+
+        for invoice in invoices:
+            predicted_categories = self.predict_invoice_fields(invoice, model_name)
+            predictive_categories_bool = {
+                k: bool(v[0] and k == v[0].category)
+                for (k, v) in predicted_categories.items()
+            }
+            predictive_accuracy = {
+                "name": invoice.readable_name,
+                "overall_accuracy": sum(predictive_categories_bool.values())
+                / len(predictive_categories_bool),
+                "detailed_accuracy": predictive_categories_bool,
+            }
+            invoice_predictive_accuracies.append(predictive_accuracy)
+        return sorted(
+            invoice_predictive_accuracies,
+            key=lambda predictive_accuracy: predictive_accuracy["overall_accuracy"],
+        )
+
     def prediction_summary(self, predictions, labels):
         text_predictions = list(
             map(lambda label: category_mappings[label], predictions["categories"])
