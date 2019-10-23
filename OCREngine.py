@@ -261,10 +261,10 @@ class OCREngine:
                 current_line = blocks_and_lines[block][line]
                 current_group = []
                 ADJUSTMENT_FACTOR = 7
-
+                
+                #take note of all the IS CURRENCY code that is meant to prevent currency and amount from grouping together
                 for token in current_line:
                     if current_group:
-                        #print(current_group)
                         height_of_current_group = max(
                             list(
                                 map(
@@ -284,18 +284,36 @@ class OCREngine:
                         )
 
                     if not current_group:
-                        current_group.append(token)
+                        #print("new group")
+                        #print(token)
+                        IS_CURRENCY = token.text in ("$","S$","SGD")
+                        #print("CURRENCY: "+str(IS_CURRENCY))
+                        if IS_CURRENCY:
+                            #print("restart successful")
+                            grouped_tokens.append(token)
+                        else:
+                            current_group.append(token)
+
                     elif (
                         TOO_FAR
-                        or IS_CURRENCY
                         or LAST_TOKEN_ENDS_WITH_COLON
                         or not ALIGNED_HORIZONTALLY
-                    ):  # This token should not be combined into the current group
+                        ):  # This token should not be combined into the current group
+                        #print("something triggered it")
+                        #print(TOO_FAR)
+                        #print(IS_CURRENCY)
+                        #print(LAST_TOKEN_ENDS_WITH_COLON)
+                        #print(not ALIGNED_HORIZONTALLY)
                         grouped_tokens.append(
                             combine_tokens_into_one_token(current_group)
                         )
-                        current_group = [token]  # Reset the current group
+                        if IS_CURRENCY:
+                            #print("restart successful")
+                            continue
+                        else:
+                            current_group = [token]  # Reset the current group
                     else:  # This token is close enough to add to the current group
+                        #print(IS_CURRENCY)
                         current_group.append(token)
 
                 if current_group:
