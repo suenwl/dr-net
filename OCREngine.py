@@ -284,12 +284,8 @@ class OCREngine:
                         )
 
                     if not current_group:
-                        #print("new group")
-                        #print(token)
                         IS_CURRENCY = token.text in ("$","S$","SGD")
-                        #print("CURRENCY: "+str(IS_CURRENCY))
                         if IS_CURRENCY:
-                            #print("restart successful")
                             grouped_tokens.append(token)
                         else:
                             current_group.append(token)
@@ -299,21 +295,14 @@ class OCREngine:
                         or LAST_TOKEN_ENDS_WITH_COLON
                         or not ALIGNED_HORIZONTALLY
                         ):  # This token should not be combined into the current group
-                        #print("something triggered it")
-                        #print(TOO_FAR)
-                        #print(IS_CURRENCY)
-                        #print(LAST_TOKEN_ENDS_WITH_COLON)
-                        #print(not ALIGNED_HORIZONTALLY)
                         grouped_tokens.append(
                             combine_tokens_into_one_token(current_group)
                         )
                         if IS_CURRENCY:
-                            #print("restart successful")
                             continue
                         else:
                             current_group = [token]  # Reset the current group
                     else:  # This token is close enough to add to the current group
-                        #print(IS_CURRENCY)
                         current_group.append(token)
 
                 if current_group:
@@ -361,7 +350,6 @@ class OCREngine:
         # Do some preliminary processing and grouping of the raw OCR output
         cleaned_OCR_output = self.clean_OCR_output(raw_OCR_output)
         tokens = self.convert_ocr_dataframe_to_token_list(cleaned_OCR_output)
-       # print(tokens)
         tokens_by_blocks_and_lines = self.get_tokens_by_block_and_lines(tokens)
         grouped_tokens = self.remove_nonsensical(
             self.group_tokens(tokens_by_blocks_and_lines)
