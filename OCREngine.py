@@ -292,6 +292,7 @@ class OCREngine:
 
                     elif (
                         TOO_FAR
+                        or IS_CURRENCY
                         or LAST_TOKEN_ENDS_WITH_COLON
                         or not ALIGNED_HORIZONTALLY
                         ):  # This token should not be combined into the current group
@@ -299,7 +300,8 @@ class OCREngine:
                             combine_tokens_into_one_token(current_group)
                         )
                         if IS_CURRENCY:
-                            continue
+                            grouped_tokens.append(token)
+                            current_group = []
                         else:
                             current_group = [token]  # Reset the current group
                     else:  # This token is close enough to add to the current group
