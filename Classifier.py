@@ -205,10 +205,11 @@ class Classifier:
         model = self.models[model_name]
 
         # input_features = self.feature_selector.transform(input_features)
+        map_category_to_position = lambda category: list(model.classes_).index(category)
         predictions = model.predict(input_features)
         prediction_probabilities = model.predict_proba(input_features)
         prediction_confidence = [
-            prediction_probabilities[i][category]
+            prediction_probabilities[i][map_category_to_position(category)]
             for i, category in enumerate(predictions)
         ]
         return {"categories": predictions, "confidence": prediction_confidence}
