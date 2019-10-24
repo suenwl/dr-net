@@ -1,13 +1,12 @@
 # Text processing methods go here
 # from invoice2data import extract_data
 # from invoice2data.extract.loader import read_templates
-
 import pytesseract
 import pandas as pd
 import numpy as np
 
 # import nltk
-import cv2
+import cv2 #import cv2
 import re
 
 # nltk.download("stopwords") #Use if nltk stopwords not downloaded
@@ -19,7 +18,7 @@ from PIL import Image, ImageFilter, ImageEnhance
 from Token import Token
 
 # for windows since brew does not work, is there a better way of doing this?
-# pytesseract.pytesseract.tesseract_cmd = "C:/Program Files/Tesseract-OCR/tesseract.exe"
+pytesseract.pytesseract.tesseract_cmd = "C:/Program Files/Tesseract-OCR/tesseract.exe"
 class OCREngine:
     @classmethod
     def preprocess_image(cls, image):
@@ -104,27 +103,84 @@ class OCREngine:
         token_list = []
 
         for index, row in ocr_dataframe.iterrows():
-
-            token_list.append(
-                Token(
-                    row.text if type(row.text) == str else None,
-                    {
-                        "x": row.left,
-                        "y": row.top,
-                        "height": row.height,
-                        "width": row.width,
-                    },
-                    row.conf,
-                    {
-                        "page_num": row.page_num,
-                        "block_num": row.block_num,
-                        "par_num": row.par_num,
-                        "line_num": row.line_num,
-                        "word_num": row.word_num,
-                    },
+            joint_case = "None"
+            starting_index = 0
+            #detect if there are currency strings in the token
+            #"""
+            text_length = len(str(row.text))
+            if str(row.text)[0] == "$" and text_length >1:
+                joint_case = "$"
+                starting_index = 1
+            elif str(row.text)[0:2] == "S$" and text_length >2:
+                joint_case = "S$"
+                starting_index =2
+            elif str(row.text)[0:3] == "SGD" and text_length >3:
+                joint_case = "SGD"
+                starting_index = 3
+           # """
+            if joint_case == "None" :
+                token_list.append(
+                        Token(
+                            row.text if type(row.text) == str else None,
+                            {
+                                "x": row.left,
+                                "y": row.top,
+                                "height": row.height,
+                                "width": row.width,
+                            },
+                            row.conf,
+                            {
+                                "page_num": row.page_num,
+                                "block_num": row.block_num,
+                                "par_num": row.par_num,
+                                "line_num": row.line_num,
+                                "word_num": row.word_num,
+                            },
+                        )
+                    )
+            #if so, split it        
+            #"""
+            else:
+                currency_new_width = starting_index*row.width/ len(row.text)
+                token_list.append(
+                        Token(
+                            joint_case,
+                            {
+                                "x": row.left,
+                                "y": row.top,
+                                "height": row.height,
+                                "width": currency_new_width,
+                            },
+                            row.conf,
+                            {
+                                "page_num": row.page_num,
+                                "block_num": row.block_num,
+                                "par_num": row.par_num,
+                                "line_num": row.line_num,
+                                "word_num": row.word_num,
+                            },
+                        )
+                    )
+                token_list.append(
+                    Token(
+                        row.text[starting_index:] if type(row.text) == str else None,
+                        {
+                            "x": row.left + currency_new_width,
+                            "y": row.top,
+                            "height": row.height,
+                            "width": (len(row.text) - starting_index)*row.width/ len(row.text),
+                        },
+                            row.conf,
+                          {
+                            "page_num": row.page_num,
+                            "block_num": row.block_num,
+                            "par_num": row.par_num,
+                            "line_num": row.line_num,
+                            "word_num": row.word_num,
+                        },
+                    )
                 )
-            )
-
+               # """    
         return token_list
 
     def get_regions(self, raw_OCR_output: DataFrame):
@@ -205,7 +261,8 @@ class OCREngine:
                 current_line = blocks_and_lines[block][line]
                 current_group = []
                 ADJUSTMENT_FACTOR = 7
-
+                
+                #take note of all the IS CURRENCY code that is meant to prevent currency and amount from grouping together
                 for token in current_line:
                     if current_group:
                         height_of_current_group = max(
@@ -220,23 +277,33 @@ class OCREngine:
                             horizontal_distance_between(token, current_group[-1])
                             > height_of_current_group / 2 + ADJUSTMENT_FACTOR
                         )
-
+                        IS_CURRENCY = token.text in ("$","S$","SGD")
                         LAST_TOKEN_ENDS_WITH_COLON = current_group[-1].text[-1] == ":"
                         ALIGNED_HORIZONTALLY = token.is_horizontally_aligned_with(
                             current_group[-1]
                         )
 
                     if not current_group:
-                        current_group.append(token)
+                        IS_CURRENCY = token.text in ("$","S$","SGD")
+                        if IS_CURRENCY:
+                            grouped_tokens.append(token)
+                        else:
+                            current_group.append(token)
+
                     elif (
                         TOO_FAR
+                        or IS_CURRENCY
                         or LAST_TOKEN_ENDS_WITH_COLON
                         or not ALIGNED_HORIZONTALLY
-                    ):  # This token should not be combined into the current group
+                        ):  # This token should not be combined into the current group
                         grouped_tokens.append(
                             combine_tokens_into_one_token(current_group)
                         )
-                        current_group = [token]  # Reset the current group
+                        if IS_CURRENCY:
+                            grouped_tokens.append(token)
+                            current_group = []
+                        else:
+                            current_group = [token]  # Reset the current group
                     else:  # This token is close enough to add to the current group
                         current_group.append(token)
 
@@ -286,7 +353,6 @@ class OCREngine:
         cleaned_OCR_output = self.clean_OCR_output(raw_OCR_output)
         tokens = self.convert_ocr_dataframe_to_token_list(cleaned_OCR_output)
         tokens_by_blocks_and_lines = self.get_tokens_by_block_and_lines(tokens)
-
         grouped_tokens = self.remove_nonsensical(
             self.group_tokens(tokens_by_blocks_and_lines)
         )
