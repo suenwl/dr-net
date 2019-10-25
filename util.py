@@ -131,6 +131,6 @@ features_to_use = [
     "rel_dist_nearest_cell_w_ponumlabel",
     "rel_dist_nearest_cell_w_totallabel",
     "rel_dist_nearest_cell_w_amountlabel",
-    # "rel_dist_nearest_cell_w_digit",
+    "rel_dist_nearest_cell_w_digit",
     "rel_dist_nearest_cell_w_tax_label",
 ]

@@ -134,8 +134,7 @@ class Token:
         return num_label,invoice_num_label, acc_num_label, po_num_label
 
     def get_currency(self):
-        currencies = ["$", "dollar", "¥", "SGD", "HKD" "USD", "US$", "SG$", "$SG", "$US", "S$", "SINGAPORE DOLLAR"]
-        out = {}
+        currencies = ["SGD", "HKD", "JPY", "USD", "US$", "SG$", "$SG", "$US", "S$", "SINGAPORE DOLLAR","$", "dollar", "¥", ]
         for cur in currencies:
             if self.text and cur in self.text:
                 return cur
