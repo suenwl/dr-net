@@ -89,7 +89,7 @@ class Token:
         kw = [
             "singapore",
             "japan",
-            "hk"
+            "hk",
             "hong kong"
         ]
         if self.text:
