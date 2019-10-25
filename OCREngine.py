@@ -5,12 +5,13 @@
 import pytesseract
 import pandas as pd
 import numpy as np
-import nltk
+
+# import nltk
 import cv2
 import re
 
 # nltk.download("stopwords") #Use if nltk stopwords not downloaded
-from nltk.corpus import stopwords
+# from nltk.corpus import stopwords
 
 from pandas import DataFrame
 from PIL import Image, ImageFilter, ImageEnhance
@@ -250,6 +251,7 @@ class OCREngine:
 
     @classmethod
     def remove_nonsensical(cls, tokens):
+        A_TOKEN = lambda token: type(token) == Token and token.text != None
         SHORT_TOKEN = lambda token: len(token.text) < 3
         FOUR_REPEATED_CHAR = (
             lambda token: re.search(r"(.)\1\1\1", token.text) is not None
@@ -257,7 +259,8 @@ class OCREngine:
         IS_LONG = lambda token: len(token.text) > 40 and not token.address
         return list(
             filter(
-                lambda token: not SHORT_TOKEN(token)
+                lambda token: A_TOKEN
+                and not SHORT_TOKEN(token)
                 and not FOUR_REPEATED_CHAR(token)
                 and not IS_LONG(token),
                 tokens,
@@ -287,7 +290,7 @@ class OCREngine:
         grouped_tokens = self.remove_nonsensical(
             self.group_tokens(tokens_by_blocks_and_lines)
         )
-        tokens_without_stopwords = self.remove_stopwords(tokens)
+        # tokens_without_stopwords = self.remove_stopwords(tokens)
 
         regions = self.convert_ocr_dataframe_to_token_list(
             self.get_regions(raw_OCR_output)

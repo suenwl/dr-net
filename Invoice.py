@@ -59,7 +59,8 @@ class Invoice:
         if not range:
             range = (0, self.length())
         for page in self.pages[range[0] : range[1]]:
-            page.do_OCR(verbose=verbose)
+            if page.page:
+                page.do_OCR(verbose=verbose)
 
     def get_page(self, page_number: int):
         return self.pages[page_number - 1]
@@ -106,12 +107,16 @@ class Invoice:
 class InvoicePage:
     def __init__(self, image: Image):
         self.page = image
-        self.processed_page = OCREngine.preprocess_image(image)
+        if image:
+            self.processed_page = OCREngine.preprocess_image(image)
+            self.size = {"x": image.size[0], "y": image.size[1]}
+        else:
+            self.processed_page = None
+            self.size = None
         self.tokens = None
         self.grouped_tokens = None
         self.regions = None
         self.tokens_by_block_and_line = None
-        self.size = {"x": image.size[0], "y": image.size[1]}
 
     def load_data(self, data_packet: dict):
         """Loads tokens, grouped_tokens, regions, tokens_by_block_and_line using a data packet. Raises an error if data is already populated"""

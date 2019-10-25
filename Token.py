@@ -24,14 +24,14 @@ class Token:
         self.category = category
 
         # feature related fields
-        self.date_values = self.get_date()
-        self.currency = self.get_currency()
-        self.consumption_period = self.get_period()
+        self.date_values = self.get_dates()
+        self.currency, self.currency_value = self.get_currency()
+        self.consumption_period_dates = self.is_consumption_period()
         self.address = self.get_address()
-        self.num_label = self.get_num_label()
+        self.num_label,self.invoice_num_label, self.acc_num_label, self.po_num_label = self.get_num_label()
         self.total_label = self.get_total_label()
         self.amount_label = self.get_amount_label()
-        self.date_label = self.get_date_label()
+        self.date_label,self.date_of_invoice_label = self.get_date_label()
         self.period_label = self.get_period_label()
         self.company = self.get_company()
         self.contains_digit = self.get_contains_digits()
@@ -62,15 +62,16 @@ class Token:
                 return True
 
     def get_date_label(self):
+        date_label = None
+        date_of_invoice_label = None
         kw = ["invoice", "bill", "issued", "receipt"]
         if self.text:
             if "date" in self.text.lower():
+                date_label = self.text.lower()
                 if any(word in self.text.lower() for word in kw):
-                    return (
-                        self.text.lower()
-                    )  # Return the entire text if it is specified that it is a invoice date
-                else:
-                    return "date"  # else just return date
+                    date_of_invoice_label = date_label
+                
+        return date_label,date_of_invoice_label
 
     def get_period_label(self):
         kw = ["period"]
@@ -138,18 +139,30 @@ class Token:
 
     # returns string for description of number, eg. account number, invoice number
     def get_num_label(self):
-        kw = ["no", "no.", "no:", "no.:", "number", "num", "#", "#:"]
+        num_label = None
+        invoice_num_label = None
+        acc_num_label = None
+        po_num_label = None
+        kw = ["no", "no.", "no:", "no.:", "number", "num", "#", "#:", "id", "id:"]
         if self.text:
             text_array = self.text.lower().split(" ")
             if any(word in text_array for word in kw):
-                return self.text.lower()
+                num_label = self.text.lower()
+                if any(word in num_label for word in ["invoice","inv","receipt", "bill"]):
+                    invoice_num_label = num_label
+                elif any(word in num_label for word in ["account","acc","customer", "a/c"]):
+                    acc_num_label = num_label
+                elif any(word in num_label for word in ["po","sales"]):
+                    po_num_label = num_label
+        return num_label,invoice_num_label, acc_num_label, po_num_label
 
     # returns a dictionary of {cur: <prefix> , value: <dollar amt> }
     # eg. {cur: $ , value: 5.00 }
     def get_currency(self):
-        currencies = ["$", "¥", "dollar", "SGD", "USD", "US$", "SG$", "$SG", "$US"]
+        generic_currencies = ["$", "dollar"]
+        specific_currencies = ["¥", "SGD", "HKD" "USD", "US$", "SG$", "$SG", "$US", "S$", "SINGAPORE DOLLAR"]
         out = {}
-        for cur in currencies:
+        for cur in generic_currencies + specific_currencies:
             if self.text and cur in self.text:
                 out["cur"] = cur
                 start = self.text.index(cur) + len(cur)
@@ -159,9 +172,143 @@ class Token:
                         break
                 try:
                     out["val"] = float(self.text[start : i + 1])
-                    return out
+                    if out["cur"] in specific_currencies:
+                        return out["cur"], out["val"] # Only return currency if it refers to a specific currency
+                    else:
+                        return None, out["val"]
                 except:
-                    return None
+                    if out["cur"] in specific_currencies:
+                        return out["cur"], None
+        return None, None
+    
+    #Assumes if date is available, it is in 1 token
+    #Creates date objects for consistency of formats
+    def get_dates(self):
+        text = self.text
+        if type(text) is str:
+            month_names = [
+                    "jan",
+                    "feb",
+                    "mar",
+                    "apr",
+                    "may",
+                    "jun",
+                    "jul",
+                    "aug",
+                    "sep",
+                    "oct",
+                    "nov",
+                    "dec",
+                ]
+            
+            #matches 1-2 digits for date & month and 2-4 digits for year d/m/y or d-m-y
+            #assumed to be in date then month then year format
+            def regex_date_check(text_nospaces):
+                re_date_dash = re.search("\d{1,2}[-]\d{1,2}[-]\d{2,4}", text_nospaces)
+                re_date_slash = re.search("\d{1,2}[/]\d{1,2}[/]\d{2,4}", text_nospaces)
+                if re_date_dash or re_date_slash: #prevent addresses from being considered
+                    if re_date_dash: 
+                        re_date = re_date_dash
+                    else:
+                        re_date = re_date_slash
+                    
+                    fulldate = re_date.group(0)
+                
+                    if len(fulldate.split("-"))>1:
+                        datelist = fulldate.split("-")
+                    else:
+                        datelist = fulldate.split("/")
+                    
+                    datelist = [ int(x) for x in datelist ]
+            
+                    #convert separated dates (1st entry for date / mth, 2nd for date / month followed by year to a date object)
+                    day = datelist [0]
+                    month = datelist[1]
+                    year = datelist[2]
+                    if datelist[1]>12 and datelist[0]<=12:
+                        month = datelist[0]
+                        day = datelist [1]
+                    if datelist[2]<100:
+                        year = datelist[2]+2000 #adjust year for 2 digit representation
+                    try:
+                        date = datetime.datetime.strptime(str(day)+str(month)+str(year), "%d%m%Y").date()
+                        return [str(date)]
+                    except:
+                        return None
+    
+            # checks for numerical months using regex
+            text_nospaces = text.replace(" ", "")
+            if regex_date_check(text_nospaces):
+                return regex_date_check(text_nospaces)
+    
+            text_list = text.split(" ")
+            if len(text_list) >1 or (len(text_list)==1 and len(text_list[0])>4):
+                # checks for named months
+                for index, word in enumerate(text_list):
+                    for month in month_names:
+                        if month in word.lower():
+                            mth = month_names.index(month)+1
+                            day = 0
+                            year = 0
+                            if len(word)>3: #continue searching if it is in 1 token
+                                re_date = re.search("\d{1,2}[/|-][a-zA-Z]{3}[/|-]\d{2,4}", word)
+                                if re_date:
+                                    fulldate = re_date.group(0)
+                                    if len(fulldate.split("-"))>1:
+                                        datelist = fulldate.split("-")
+                                    else:
+                                        datelist = fulldate.split("/")
+                                    day = int(datelist[0])
+                                    year = int(datelist[2])
+                                    if int(datelist[2])<100:
+                                        year = int(datelist[2])+2000 #adjust year for 2 digit representation
+                                    try: 
+                                        date = datetime.datetime.strptime(str(day)+str(mth)+str(year), "%d%m%Y").date()
+                                        return [str(date)]
+                                    except:
+                                        pass
+                            
+                            else: #for cases like '09', 'Aug', '2018'
+                                for index2, word2 in enumerate(text_list):
+                                    if word2!= word:
+                                        if word2.isnumeric():
+                                            if day == 0:
+                                                if int(word2)<= 31:
+                                                    day = int(word2)
+                                            else:
+                                                if int(word2) <100:
+                                                    year = int(word2) + 2000
+                                                else:
+                                                    year = int(word2)
+                                try:
+                                    date = datetime.datetime.strptime(str(day)+str(mth)+str(year), "%d%m%Y").date()
+                                    return [str(date)]
+                                except:
+                                    pass
+                
+                        #last case to catch cases like '30JUL19', 'JUL3019', '30JUL2019','JUL302019'
+                            if re.search("\d{1,2}[a-zA-Z]{3}\d{2,4}", word):
+                                fulldate = re.search("\d{1,2}[a-zA-Z]{3}\d{2,4}", word).group(0).lower()
+                                day = int(fulldate[:fulldate.find(month)])
+                                year = int(fulldate[fulldate.find(month)+3:])
+                                
+                            elif re.search("[a-zA-Z]{3}\d{1,2}\d{2,4}", word):
+                                fulldate = re.search("[a-zA-Z]{3}\d{1,2}\d{2,4}", word).group(0).lower()
+                                if len(fulldate)<8:
+                                    year = int(fulldate[-2:])
+                                    day = int(fulldate[3:-2])
+                                else:
+                                    year = int(fulldate[-4:])
+                                    day = int(fulldate[3:-4])
+                            if year<100:
+                                year+=2000
+                                
+                            try:
+                                date = datetime.datetime.strptime(str(day)+str(mth)+str(year), "%d%m%Y").date()
+                                return [str(date)]
+                            except:
+                                pass
+            return None        
 
     """     # checks if token is a date token
     def get_dates(self):
@@ -219,122 +366,14 @@ class Token:
                     if month in text_list[0]:
                         dates.append(text_list[0])
         return dates """
-
-    #matches 1-2 digits for date & month and 2-4 digits for year d/m/y or d-m-y
-    #assumed to be in date then month then year format
-    def regex_date_check(text_nospaces):
-        re_date = re.search("\d{1,2}[/|-]\d{1,2}[/|-]\d{2,4}", text_nospaces)
-        
-        if re_date:
-            fulldate = re_date.group(0)
-        
-            if len(fulldate.split("-"))>1:
-                datelist = fulldate.split("-")
-            else:
-                datelist = fulldate.split("/")
-            
-            datelist = [ int(x) for x in datelist ]
     
-             #convert separated dates (1st entry for date / mth, 2nd for date / month followed by year to a date object)
-            day = datelist [0]
-            month = datelist[1]
-            year = datelist[2]
-            if datelist[1]>12 and datelist[0]<=12:
-                month = datelist[0]
-                day = datelist [1]
-            if datelist[2]<100:
-                year = datelist[2]+2000 #adjust year for 2 digit representation
-            date = datetime.datetime.strptime(str(day)+str(month)+str(year), "%d%m%Y").date()
-            return date
-    
-     #Assumes if date is available, it is in 1 token
-     #Creates date objects for consistency of formats
-    def get_date(selftext):
-        dates = []
-        text = selftext
-        if type(text) is str:
-            month_names = [
-                    "jan",
-                    "feb",
-                    "mar",
-                    "apr",
-                    "may",
-                    "jun",
-                    "jul",
-                    "aug",
-                    "sep",
-                    "oct",
-                    "nov",
-                    "dec",
-                ]
-    
-            # checks for numerical months using regex
-            text_nospaces = text.replace(" ", "")
-            if regex_date_check(text_nospaces):
-                return regex_date_check(text_nospaces)
-    
-            text_list = text.split(" ")
-            if len(text_list) >=1:
-                # checks for named months
-                for index, word in enumerate(text_list):
-                    for month in month_names:
-                        if month in word.lower():
-                            mth = month_names.index(month)+1
-                            day = 0
-                            year = 0
-                            if len(word)>3: #continue searching if it is in 1 token
-                                re_date = re.search("\d{1,2}[/|-][a-zA-Z]{3}[/|-]\d{2,4}", word)
-                                if re_date:
-                                    fulldate = re_date.group(0)
-                                    if len(fulldate.split("-"))>1:
-                                        datelist = fulldate.split("-")
-                                    else:
-                                        datelist = fulldate.split("/")
-                                    day = int(datelist[0])
-                                    year = int(datelist[2])
-                                    if int(datelist[2])<100:
-                                        year = int(datelist[2])+2000 #adjust year for 2 digit representation
-                                    date = datetime.datetime.strptime(str(day)+str(mth)+str(year), "%d%m%Y").date()
-                                    return date
-                            else: #for cases like '09', 'Aug', '2018'
-                                for index2, word2 in enumerate(text_list):
-                                    if word2!= word:
-                                        if word2.isnumeric():
-                                            if day == 0:
-                                                if int(word2)<= 31:
-                                                    day = int(word2)
-                                            else:
-                                                if int(word2) <100:
-                                                    year = int(word2) + 2000
-                                                else:
-                                                    year = int(word2)
-                                date = datetime.datetime.strptime(str(day)+str(mth)+str(year), "%d%m%Y").date()
-                                return date
-                
-                        #last case to catch cases like '30JUL19', 'JUL3019', '30JUL2019','JUL302019'
-                            if re.search("\d{1,2}[a-zA-Z]{3}\d{2,4}", word):
-                                fulldate = re.search("\d{1,2}[a-zA-Z]{3}\d{2,4}", word).group(0).lower()
-                                day = int(fulldate[:fulldate.find(month)])
-                                year = int(fulldate[fulldate.find(month)+3:])
-                                
-                            elif re.search("[a-zA-Z]{3}\d{1,2}\d{2,4}", word):
-                                fulldate = re.search("[a-zA-Z]{3}\d{1,2}\d{2,4}", word).group(0).lower()
-                                if len(fulldate)<8:
-                                    year = int(fulldate[-2:])
-                                    day = int(fulldate[3:-2])
-                                else:
-                                    year = int(fulldate[-4:])
-                                    day = int(fulldate[3:-4])
-                            if year<100:
-                                year+=2000
-                                
-                            date = datetime.datetime.strptime(str(day)+str(mth)+str(year), "%d%m%Y").date()
-                            return date
-
-    # checks if token itself is a consumption period and returns a boolean
+    # checks if token itself is a consumption period of 2 dates
+    # assumes dates are in the right format: earlier date followed by later date
+    # returns None or a list of 2 dates ordered by start / end
+    # output example: [['2019-04-14'], ['2019-05-13']]
     def is_consumption_period(self):
+        consumption_dates = []
         text = self.text
-        boolean = False
         if type(text) is str:
             month_names = set(
                 [
@@ -354,18 +393,83 @@ class Token:
             )
              # checks for numerical months using regex
             text_nospaces = text.replace(" ", "")
-            #possibilities -> same month or 2 diff months
-        return boolean
+            
+            #single token
+            # extracts out 14/04/19-13/05/19 format       
+            re_date_slash = re.search("\d{1,2}[/]\d{1,2}[/]\d{2,4}[-]\d{1,2}[/]\d{1,2}[/]\d{2,4}", text_nospaces)
+            
+            if re_date_slash:
+                for date in re_date_slash.group(0).split("-"):
+                    #append to self
+                    try:
+                        consumption_dates.append(get_dates(date))
+                    except:
+                        pass
+                if consumption_dates!=[] and len(consumption_dates)==2:
+                    return consumption_dates
+                    
+            # extracts out 15Jun2019-14Jul2019 format
+            re_date_months = re.search("\d{1,2}[a-zA-Z]{3}\d{2,4}[-]\d{1,2}[a-zA-Z]{3}\d{2,4}", text_nospaces)
+            if re_date_months:
+                for date in re_date_months.group(0).split("-"):
+                    #append to self
+                    try:
+                        consumption_dates.append(get_dates(date))
+                    except:
+                        pass
+                if consumption_dates!=[] and len(consumption_dates)==2:
+                    return consumption_dates
+            
+            # extract out 01-31May2018/ 01-31May18 format
+            re_date_samemth = re.search("\d{1,2}[-]\d{1,2}[a-zA-Z]{3}\d{2,4}", text_nospaces)
+            if re_date_samemth:
+                mth_position = -1
+                split_date = re_date_samemth.group(0).lower().split("-")
+                for month in month_names:
+                    if int(split_date[1].find(month))!=-1: #month exists
+                        mth_position = int(split_date[1].find(month))
+                if mth_position!=-1:
+                    later_date = split_date[1]
+                    earlier_date = split_date[0] + split_date[1][2:]
+                    try:
+                        consumption_dates.append(get_dates(earlier_date))
+                        consumption_dates.append(get_dates(later_date))
+                        return consumption_dates
+                    except:
+                        pass
+            
+            # extract out 23Aug-22Sep2018 format
+            re_date_sameyr = re.search("\d{1,2}[a-zA-Z]{3}[-]\d{1,2}[a-zA-Z]{3}\d{2,4}", text_nospaces)
+            if re_date_sameyr:
+                mth_position = -1
+                split_date = re_date_sameyr.group(0).lower().split("-")
+                for month in month_names:
+                    if int(split_date[1].find(month))!=-1: #month exists
+                        mth_position = int(split_date[1].find(month))
+                if mth_position!=-1:
+                    later_date = split_date[1]
+                    earlier_date = split_date[0] + split_date[1][mth_position+3:]
+                    try:
+                        consumption_dates.append(get_dates(earlier_date))
+                        consumption_dates.append(get_dates(later_date))
+                        return consumption_dates
+                    except:
+                        pass
         
-
-
-    # returns a dict of 2 dates {earlier_date: date object, later_date: date object }
-    # to be implemented
-    def get_period(self):
-                try:
-                    return None
-                except:
-                    return None
+        
+    # =============================================================================
+      # Todo: deal with more variations of consumption periods
+      #placeholder for future multitokens assuming combined
+    #         period_multi_token = {1: ["23-Mar-2018", "to", "01-Jun-2018"], 
+    #                       2: [" Service Description for March 2019", " -"," February 2020 "], 
+    #                       3: ["08/06/2016", " to", "07/06/2017 "], 
+    #                       4: ["05 Sep 2018", " -", "04 Sep 2019"], #covered case
+    #                       5: ["Sep", " 1", "", " 2017", " -", " Sep", " 30", ""," 2017"]} #covered
+    # =============================================================================
+            
+            #possibilities -> same month or 2 diff months
+        if consumption_dates==[]:
+            return None
 
     def set_category(self, category: str):
         self.category = category

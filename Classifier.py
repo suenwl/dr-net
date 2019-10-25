@@ -7,8 +7,6 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import normalize
-from sklearn.feature_selection import SelectKBest, chi2
 
 from sklearn.metrics import classification_report
 import pickle
@@ -50,7 +48,7 @@ class Classifier:
         }
         # original line without use of grid search to optimise parameters
         # classifier = svm.SVC(gamma=0.001, C=100.0)
-        classifier = svm.SVC(probability=True, gamma=0.001, C=1, kernel="linear")
+        classifier = svm.SVC(probability=True, gamma="scale", C=1, kernel="linear")
         # classifier = GridSearchCV(classifier, parameters, cv=5)
         classifier.fit(data, labels)
         self.models["Support Vector Machine"] = classifier
@@ -61,7 +59,7 @@ class Classifier:
         # multi-layer perceptron (MLP) algorithm
         # consider increasing neuron number to match number of features as data set
         classifier = MLPClassifier(
-            solver="lbfgs", alpha=1e-5, hidden_layer_sizes=(20, 20), random_state=1
+            solver="lbfgs", alpha=1e-5, hidden_layer_sizes=(50, 50, 50), random_state=1
         )
         classifier.fit(data, labels)
         self.models["Neural Network"] = classifier
@@ -83,11 +81,7 @@ class Classifier:
 
     def train(self, model_name: str, data, labels, max_features="all"):
         # mlp sensitive to feature scaling, plus NN requires this so we standardise scaling first
-        data = normalize(data)
         labels = list(map(lambda label: category_mappings[label], labels))
-        # self.feature_selector = SelectKBest(chi2, k=max_features).fit(data, labels)
-        # data = self.feature_selector.transform(data)
-        # labels = scaler.transform(labels)
         """ Used to train a specific model """
         if model_name == "Support Vector Machine":
             self.train_support_vector_machine(data, labels)
@@ -143,17 +137,57 @@ class Classifier:
     def create_train_and_test_packet(
         cls, invoices, features_to_use, percentage_train: float = 0.8
     ):
-        random.shuffle(invoices)
-        splitting_point = int(len(invoices) * 0.8)
-        train_invoices = invoices[:splitting_point]
-        test_invoices = invoices[splitting_point:]
+        # random.shuffle(invoices)
+        # splitting_point = int(len(invoices) * 0.8)
+        # train_invoices = invoices[:splitting_point]
+        # test_invoices = invoices[splitting_point:]
 
-        train_data, train_labels, train_tokens = cls.get_data_and_labels(
-            train_invoices, features_to_use, scale_others=False
+        # train_data, train_labels, train_tokens = cls.get_data_and_labels(
+        #     train_invoices, features_to_use, scale_others=False
+        # )
+        # test_data, test_labels, train_tokens = cls.get_data_and_labels(
+        #     test_invoices, features_to_use, scale_others=False
+        # )
+
+        data, labels, tokens = cls.get_data_and_labels(
+            invoices, features_to_use, scale_others=False
         )
-        test_data, test_labels, train_tokens = cls.get_data_and_labels(
-            test_invoices, features_to_use, scale_others=False
-        )
+
+        # Compile data into a dictionary
+        zipped = list(zip(data, labels, tokens))
+        dictionary_of_categories = {}
+        for token in zipped:
+            label = token[1]
+            if label not in dictionary_of_categories:  # If category does not yet exist
+                dictionary_of_categories[label] = []
+            else:
+                dictionary_of_categories[label].append(token)
+
+        train = []
+        test = []
+
+        # Shuffle all categories
+        for category in dictionary_of_categories:
+            category_data = dictionary_of_categories[category]
+            random.shuffle(category_data)
+            splitting_point = int(len(category_data) * percentage_train)
+            train.extend(category_data[:splitting_point])
+            test.extend(category_data[splitting_point:])
+
+        random.shuffle(train)
+        random.shuffle(test)
+
+        train_data = []
+        train_labels = []
+        test_data = []
+        test_labels = []
+
+        for data in train:
+            train_data.append(data[0])
+            train_labels.append(data[1])
+        for data in test:
+            test_data.append(data[0])
+            test_labels.append(data[1])
 
         return {
             "train_data": train_data,
