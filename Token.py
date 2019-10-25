@@ -114,6 +114,9 @@ class Token:
             "view",
             "bukit",
             "tanjong",
+            "japan",
+            "hk"
+            "hong kong"
         ]
         if self.text:
             text_array = self.text.lower().split(" ")
