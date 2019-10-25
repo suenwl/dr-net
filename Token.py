@@ -24,7 +24,7 @@ class Token:
         self.category = category
 
         # feature related fields
-        self.date_values = self.get_dates()
+        self.date_values = self.get_date()
         self.currency = self.get_currency()
         self.consumption_period = self.get_period()
         self.address = self.get_address()
@@ -163,7 +163,7 @@ class Token:
                 except:
                     return None
 
-"""     # checks if token is a date token
+    """     # checks if token is a date token
     def get_dates(self):
         # TODO parse range of dates and into date objects
         dates = []
