@@ -12,6 +12,7 @@ from pandas import DataFrame
 from PIL import Image, ImageFilter, ImageEnhance
 
 from Token import Token
+from util import currencies
 
 # for windows since brew does not work, is there a better way of doing this?
 # pytesseract.pytesseract.tesseract_cmd = "C:/Program Files/Tesseract-OCR/tesseract.exe"
@@ -99,75 +100,28 @@ class OCREngine:
         token_list = []
 
         for index, row in ocr_dataframe.iterrows():
-            joint_case = "None"
+            joint_case = None
             starting_index = 0
-            #detect if there are currency strings in the token
+            # detect if there are currency strings in the token
             text_length = len(str(row.text))
-            if str(row.text)[0] == "$" and text_length >1:
-                joint_case = "$"
-                starting_index = 1
-            elif str(row.text)[0:2] == "S$" and text_length >2:
-                joint_case = "S$"
-                starting_index =2
-            elif str(row.text)[0:3] == "SGD" and text_length >3:
-                joint_case = "SGD"
-                starting_index = 3
-            
+            for currency in currencies: # See util.py
+                if type(row.text) == str and row.text.startswith(currency) and text_length > len(currency):
+                    joint_case = currency
+                    starting_index = len(currency)
+
             # If the text does not contain a currency string, append as per normal
-            if joint_case == "None" :
-                token_list.append(
-                        Token(
-                            row.text if type(row.text) == str else None,
-                            {
-                                "x": row.left,
-                                "y": row.top,
-                                "height": row.height,
-                                "width": row.width,
-                            },
-                            row.conf,
-                            {
-                                "page_num": row.page_num,
-                                "block_num": row.block_num,
-                                "par_num": row.par_num,
-                                "line_num": row.line_num,
-                                "word_num": row.word_num,
-                            },
-                        )
-                    )
-            #If it does, then split it, appending two separate tokens     
-            #"""
-            else:
-                currency_new_width = starting_index*row.width/ len(row.text)
-                token_list.append(
-                        Token(
-                            joint_case,
-                            {
-                                "x": row.left,
-                                "y": row.top,
-                                "height": row.height,
-                                "width": currency_new_width,
-                            },
-                            row.conf,
-                            {
-                                "page_num": row.page_num,
-                                "block_num": row.block_num,
-                                "par_num": row.par_num,
-                                "line_num": row.line_num,
-                                "word_num": row.word_num,
-                            },
-                        )
-                    )
+            if joint_case == None:
                 token_list.append(
                     Token(
-                        row.text[starting_index:] if type(row.text) == str else None,
+                        row.text if type(row.text) == str else None,
                         {
-                            "x": row.left + currency_new_width,
+                            "x": row.left,
                             "y": row.top,
                             "height": row.height,
-                            "width": (len(row.text) - starting_index)*row.width/ len(row.text),
+                            "width": row.width,
                         },
-                            row.conf,
-                          {
+                        row.conf,
+                        {
                             "page_num": row.page_num,
                             "block_num": row.block_num,
                             "par_num": row.par_num,
@@ -176,7 +130,51 @@ class OCREngine:
                         },
                     )
                 )
-               # """    
+            # If it does, then split it, appending two separate tokens
+            # """
+            else:
+                currency_new_width = starting_index * row.width / len(row.text)
+                token_list.append(
+                    Token(
+                        joint_case,
+                        {
+                            "x": row.left,
+                            "y": row.top,
+                            "height": row.height,
+                            "width": currency_new_width,
+                        },
+                        row.conf,
+                        {
+                            "page_num": row.page_num,
+                            "block_num": row.block_num,
+                            "par_num": row.par_num,
+                            "line_num": row.line_num,
+                            "word_num": row.word_num,
+                        },
+                    )
+                )
+                token_list.append(
+                    Token(
+                        row.text[starting_index:] if type(row.text) == str else None,
+                        {
+                            "x": row.left + currency_new_width,
+                            "y": row.top,
+                            "height": row.height,
+                            "width": (len(row.text) - starting_index)
+                            * row.width
+                            / len(row.text),
+                        },
+                        row.conf,
+                        {
+                            "page_num": row.page_num,
+                            "block_num": row.block_num,
+                            "par_num": row.par_num,
+                            "line_num": row.line_num,
+                            "word_num": row.word_num,
+                        },
+                    )
+                )
+            # """
         return token_list
 
     def get_regions(self, raw_OCR_output: DataFrame):
@@ -257,10 +255,11 @@ class OCREngine:
                 current_line = blocks_and_lines[block][line]
                 current_group = []
                 ADJUSTMENT_FACTOR = 7
-                
-                #take note of all the IS CURRENCY code that is meant to prevent currency and amount from grouping together
+
+                # take note of all the IS CURRENCY code that is meant to prevent currency and amount from grouping together
                 for token in current_line:
-                    if current_group:
+                    IS_CURRENCY = token.text in currencies
+                    if current_group: # If there exists tokens in the current group
                         height_of_current_group = max(
                             list(
                                 map(
@@ -273,36 +272,41 @@ class OCREngine:
                             horizontal_distance_between(token, current_group[-1])
                             > height_of_current_group / 2 + ADJUSTMENT_FACTOR
                         )
-                        IS_CURRENCY = token.text in ("$","S$","SGD")
                         LAST_TOKEN_ENDS_WITH_COLON = current_group[-1].text[-1] == ":"
                         ALIGNED_HORIZONTALLY = token.is_horizontally_aligned_with(
                             current_group[-1]
                         )
 
-                    if not current_group:
-                        IS_CURRENCY = token.text in ("$","S$","SGD")
+                        # When something is a currency, independently add it to the grouped tokens
+                        if IS_CURRENCY: 
+                            grouped_tokens.append(
+                                combine_tokens_into_one_token(current_group)
+                            )
+                            grouped_tokens.append(token)
+                            current_group = []
+                            
+                        # If something should not belong to the current group, group the current group and start a new group
+                        elif (
+                            TOO_FAR
+                            or LAST_TOKEN_ENDS_WITH_COLON
+                            or not ALIGNED_HORIZONTALLY
+                        ): # This token should not be combined into the current group
+                            grouped_tokens.append(
+                                combine_tokens_into_one_token(current_group)
+                            )
+                            current_group = [token]  # Reset the current group
+                        
+                        # It meets the criteria for normal append-ment of the token
+                        else:
+                            current_group.append(token)
+
+                    else:  # Start a new group, since current_group is empty. Unless it is a currency, in which case, append directly to grouped tokens
                         if IS_CURRENCY:
                             grouped_tokens.append(token)
                         else:
                             current_group.append(token)
 
-                    elif (
-                        TOO_FAR
-                        or IS_CURRENCY
-                        or LAST_TOKEN_ENDS_WITH_COLON
-                        or not ALIGNED_HORIZONTALLY
-                        ):  # This token should not be combined into the current group
-                        grouped_tokens.append(
-                            combine_tokens_into_one_token(current_group)
-                        )
-                        if IS_CURRENCY:
-                            grouped_tokens.append(token)
-                            current_group = []
-                        else:
-                            current_group = [token]  # Reset the current group
-                    else:  # This token is close enough to add to the current group
-                        current_group.append(token)
-
+                # After finishing a line, just combine remaining tokens
                 if current_group:
                     grouped_tokens.append(combine_tokens_into_one_token(current_group))
 
@@ -316,16 +320,19 @@ class OCREngine:
     def remove_nonsensical(cls, tokens):
         A_TOKEN = lambda token: type(token) == Token and token.text != None
         SHORT_TOKEN = lambda token: len(token.text) < 3
+        CURRENCY = lambda token: token.text in currencies
         FOUR_REPEATED_CHAR = (
             lambda token: re.search(r"(.)\1\1\1", token.text) is not None
         )
         IS_LONG = lambda token: len(token.text) > 40 and not token.address
+        
         return list(
             filter(
                 lambda token: A_TOKEN(token)
                 and not SHORT_TOKEN(token)
                 and not FOUR_REPEATED_CHAR(token)
-                and not IS_LONG(token),
+                and not IS_LONG(token)
+                or CURRENCY(token),
                 tokens,
             )
         )
