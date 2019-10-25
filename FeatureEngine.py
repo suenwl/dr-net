@@ -224,7 +224,6 @@ class FeatureEngine:
         # boolean if token contains fields
         features["contains_date"] = 1 if token.date_values else 0
         features["contains_currency"] = 1 if token.currency else 0
-        features["contains_currency_value"] = 1 if token.currency_value else 0
         features["contains_address"] = 1 if token.address else 0
         features["contains_num_label"] = 1 if token.num_label else 0
         features["contains_total_label"] = 1 if token.total_label else 0

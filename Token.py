@@ -25,7 +25,7 @@ class Token:
 
         # feature related fields
         self.date_values = self.get_dates()
-        self.currency, self.currency_value = self.get_currency()
+        self.currency = self.get_currency()
         self.consumption_period_dates = self.is_consumption_period()
         self.address = self.get_address()
         self.num_label,self.invoice_num_label, self.acc_num_label, self.po_num_label = self.get_num_label()
@@ -156,30 +156,12 @@ class Token:
                     po_num_label = num_label
         return num_label,invoice_num_label, acc_num_label, po_num_label
 
-    # returns a dictionary of {cur: <prefix> , value: <dollar amt> }
-    # eg. {cur: $ , value: 5.00 }
     def get_currency(self):
-        generic_currencies = ["$", "dollar"]
-        specific_currencies = ["¥", "SGD", "HKD" "USD", "US$", "SG$", "$SG", "$US", "S$", "SINGAPORE DOLLAR"]
+        currencies = ["$", "dollar", "¥", "SGD", "HKD" "USD", "US$", "SG$", "$SG", "$US", "S$", "SINGAPORE DOLLAR"]
         out = {}
-        for cur in generic_currencies + specific_currencies:
+        for cur in currencies:
             if self.text and cur in self.text:
-                out["cur"] = cur
-                start = self.text.index(cur) + len(cur)
-                for i in range(start, len(self.text)):
-                    char = self.text[i]
-                    if not char.isdigit() and not (char in [".", ","]):
-                        break
-                try:
-                    out["val"] = float(self.text[start : i + 1])
-                    if out["cur"] in specific_currencies:
-                        return out["cur"], out["val"] # Only return currency if it refers to a specific currency
-                    else:
-                        return None, out["val"]
-                except:
-                    if out["cur"] in specific_currencies:
-                        return out["cur"], None
-        return None, None
+                return cur
     
     #Assumes if date is available, it is in 1 token
     #Creates date objects for consistency of formats
