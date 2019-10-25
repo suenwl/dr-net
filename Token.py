@@ -2,6 +2,7 @@
 import pytesseract
 import pandas as pd
 from PIL import Image
+from util import currencies
 from typing import Dict
 from math import sqrt
 import re
@@ -25,7 +26,7 @@ class Token:
 
         # feature related fields
         self.date_values = self.get_dates()
-        self.currency = self.get_currency()
+        self.currency, self.specific_currency = self.get_currency()
         self.consumption_period_dates = self.is_consumption_period()
         self.address = self.get_address()
         self.num_label,self.invoice_num_label, self.acc_num_label, self.po_num_label = self.get_num_label()
@@ -52,13 +53,14 @@ class Token:
             return False
 
     def get_tax_label(self):
-        kw = ["gst", "tax"]
+        kw = ["gst", "tax", "vat"]
         negative_kw = ["excl","with","incl"]
         if self.text:
             words = self.text.lower().split(" ")
             no_negative_keywords = not any(word in self.text.lower() for word in negative_kw)
+            no_total_keyword = "total" not in self.text.lower()
             keywords_exist = any(word in self.text.lower() for word in kw)
-            if len(words)<4 and no_negative_keywords and keywords_exist:
+            if len(words)<4 and (no_negative_keywords or no_total_keyword) and keywords_exist:
                 return True
 
     def get_date_label(self):
@@ -108,7 +110,7 @@ class Token:
                     return self.text.lower()
     
     def get_amount_label(self):
-        kw = ["amount","amt"]
+        kw = ["amount","amt","charges"]
         if self.text:
             for w in kw:
                 if w in self.text.lower() and len(self.text.split(" ")) < 5:
@@ -134,10 +136,18 @@ class Token:
         return num_label,invoice_num_label, acc_num_label, po_num_label
 
     def get_currency(self):
-        currencies = ["SGD", "HKD", "JPY", "USD", "US$", "SG$", "$SG", "$US", "S$", "SINGAPORE DOLLAR","$", "dollar", "¥", ]
-        for cur in currencies:
+        specific_currencies = ["SGD", "HKD", "JPY", "USD", "US$", "SG$", "$SG", "$US", "S$", "SINGAPORE DOLLAR"]
+        currency = None
+        specific_currency = None
+        for cur in currencies: # See util.py
             if self.text and cur in self.text:
-                return cur
+                currency = cur
+
+        for cur in specific_currencies:
+            if self.text and cur in self.text:
+                specific_currency = cur
+        
+        return currency, specific_currency
     
     #Assumes if date is available, it is in 1 token
     #Creates date objects for consistency of formats
