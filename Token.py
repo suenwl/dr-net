@@ -87,33 +87,7 @@ class Token:
     # tries to extract address from token
     def get_address(self):
         kw = [
-            "drive",
-            "dr",
-            "road",
-            "rd",
-            "lane",
-            "ln",
-            "ave",
-            "avenue",
-            "street",
-            "jalan",
-            "jln",
-            "boulevard",
-            "blvd",
-            "way",
-            "park",
-            "gate",
-            "crescent",
-            "cres",
             "singapore",
-            "grove",
-            "grv",
-            "lorong",
-            "lor",
-            "valley",
-            "view",
-            "bukit",
-            "tanjong",
             "japan",
             "hk"
             "hong kong"
