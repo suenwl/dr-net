@@ -5,12 +5,8 @@ import pytesseract
 import pandas as pd
 import numpy as np
 
-# import nltk
-import cv2 #import cv2
+import cv2
 import re
-
-# nltk.download("stopwords") #Use if nltk stopwords not downloaded
-# from nltk.corpus import stopwords
 
 from pandas import DataFrame
 from PIL import Image, ImageFilter, ImageEnhance
@@ -18,7 +14,7 @@ from PIL import Image, ImageFilter, ImageEnhance
 from Token import Token
 
 # for windows since brew does not work, is there a better way of doing this?
-pytesseract.pytesseract.tesseract_cmd = "C:/Program Files/Tesseract-OCR/tesseract.exe"
+# pytesseract.pytesseract.tesseract_cmd = "C:/Program Files/Tesseract-OCR/tesseract.exe"
 class OCREngine:
     @classmethod
     def preprocess_image(cls, image):
@@ -106,7 +102,6 @@ class OCREngine:
             joint_case = "None"
             starting_index = 0
             #detect if there are currency strings in the token
-            #"""
             text_length = len(str(row.text))
             if str(row.text)[0] == "$" and text_length >1:
                 joint_case = "$"
@@ -117,7 +112,8 @@ class OCREngine:
             elif str(row.text)[0:3] == "SGD" and text_length >3:
                 joint_case = "SGD"
                 starting_index = 3
-           # """
+            
+            # If the text does not contain a currency string, append as per normal
             if joint_case == "None" :
                 token_list.append(
                         Token(
@@ -138,7 +134,7 @@ class OCREngine:
                             },
                         )
                     )
-            #if so, split it        
+            #If it does, then split it, appending two separate tokens     
             #"""
             else:
                 currency_new_width = starting_index*row.width/ len(row.text)
