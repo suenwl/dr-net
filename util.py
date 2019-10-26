@@ -1,7 +1,6 @@
 import fitz
 from PIL import Image
 from IPython.display import clear_output, display
-from FeatureEngine import FeatureEngine
 
 
 def convert_pdf_to_image(PDF_path):
@@ -38,6 +37,8 @@ def print_progress(current, total, text):
 
 
 def print_tokens_and_features_with_category(invoices, category, selected_features):
+    from FeatureEngine import FeatureEngine
+
     print("{:30.25} {:15}".format("Invoice name", "Token text"))
 
     for invoice in invoices:

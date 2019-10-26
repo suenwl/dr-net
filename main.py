@@ -10,7 +10,7 @@ from util import features_to_use
 print("Starting...")
 invoices = FeatureEngine.load_invoices_and_map_labels(
     "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data",
-    autoload=False,
+    autoload=True,
     verbose=True,
 )
 #%%
@@ -25,7 +25,6 @@ predictions = classifier.predict_token_classifications(
     data["test_data"], "Neural Network"
 )
 classifier.prediction_summary(predictions=predictions, labels=data["test_labels"])
-
 
 #%%
 import json
@@ -42,3 +41,17 @@ for invoice in invoices_perf[:20]:
     )
 
 #%%
+# Write predictions to csv
+classifier = Classifier()
+classifier.load()
+predictions = []
+invoice_names = [invoice.readable_name for invoice in invoices]
+for invoice in invoices:
+    predictions.append(
+        classifier.clean_output(
+            classifier.predict_invoice_fields(invoice, "Neural Network")
+        )
+    )
+classifier.write_predictions_to_csv(predictions, invoice_names)
+
+# %%

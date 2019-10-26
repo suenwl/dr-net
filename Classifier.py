@@ -13,6 +13,8 @@ import pickle
 import os
 import random
 import numpy as np
+import csv
+import re
 
 # testing new feature selection
 # import statsmodels.api as sm
@@ -239,9 +241,45 @@ class Classifier:
         for index in range(len(categories)):
             category = categories[index]
             if confidence[index] > predicted_categories[category][1]:
-                predicted_categories[category] = (tokens[index], confidence[index])
+                predicted_categories[category] = [tokens[index], confidence[index]]
 
         return predicted_categories
+
+    @classmethod
+    def clean_output(cls,predicted_categories):
+        predicted_categories.pop("Others",None)
+        for key in predicted_categories:
+            relevant_token = predicted_categories[key][0]
+            if not relevant_token:
+                continue
+
+            if key == "Account number" or key == "Invoice number":
+                pattern = re.compile('[\W_]+', re.UNICODE) # By Python definition '\W == [^a-zA-Z0-9_], which excludes all numbers, letters and _
+                predicted_categories[key][0] = re.sub(pattern,"",relevant_token.text)
+            elif key == "Consumption period":
+                predicted_categories[key][0] = relevant_token.date_range
+            elif key == "Country of consumption":
+                if any(country in relevant_token.text.lower() for country in ["singapore", "sg"]):
+                    predicted_categories[key][0] = "Singapore"
+                elif any(country in relevant_token.text.lower() for country in ["hong kong","hk"]):
+                    predicted_categories[key][0] = "Hong Kong"
+                elif any(country in relevant_token.text.lower() for country in ["japan","jp"]):
+                    predicted_categories[key][0] = "Japan"
+            elif key == "Currency of invoice":
+                if any(currency in relevant_token.text.lower() for currency in ["sgd", "sg$", "$sg", "s$","singapore dollar"]):
+                    predicted_categories[key][0] = "SGD"
+                elif any(currency in relevant_token.text.lower() for currency in ["hkd", "hk$", "$hk", "hong kong dollar"]):
+                    predicted_categories[key][0] = "HKD"
+                elif any(currency in relevant_token.text.lower() for currency in ["jpy", "¥", "yen"]):
+                    predicted_categories[key][0] = "JPY"
+            elif key == "Date of invoice":
+                predicted_categories[key][0] = relevant_token.date_values
+            elif key == "Tax" or key == "Total amount":
+                output = re.search("[\d,]+[.]{0,1}[\d]{0,4}",relevant_token.text)
+                if output:
+                    predicted_categories[key][0] = output.group(0)
+        return predicted_categories
+
 
     def sort_invoices_by_predictive_accuracy(self, invoices, model_name: str):
         """
@@ -277,6 +315,24 @@ class Classifier:
         )
         report = "'" + classification_report(labels, text_predictions)[1:]
         print(report)
+
+    @classmethod
+    def write_predictions_to_csv(cls,predictions,invoice_names):
+        """
+        Writes predictions, which is a list of dictionaries, to a csv file
+        """
+        keys = ["Invoice"] + list(predictions[0].keys())
+        # Add invoice name to data
+        for index, prediction in enumerate(predictions):
+            for field in prediction:
+                prediction[field] = prediction[field][0]
+            prediction["Invoice"] = invoice_names[index]
+        
+        with open('invoice_predictions.csv', 'w') as output_file:
+            dict_writer = csv.DictWriter(output_file, keys)
+            dict_writer.writeheader()
+            dict_writer.writerows(predictions)
+
 
     @classmethod
     def select_features(cls, data, labels, max_number="all"):
