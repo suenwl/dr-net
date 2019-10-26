@@ -27,7 +27,7 @@ class Token:
         # feature related fields
         self.date_values = self.get_dates()
         self.currency, self.specific_currency = self.get_currency()
-        self.consumption_period_dates = self.get_consumption_period()
+        self.date_range = self.get_date_range()
         self.address = self.get_address()
         self.num_label,self.invoice_num_label, self.acc_num_label, self.po_num_label = self.get_num_label()
         self.total_label = self.get_total_label()
@@ -151,7 +151,7 @@ class Token:
     
     #Assumes if date is available, it is in 1 token
     #Creates date objects for consistency of formats
-    # Also provides the option of providing a date_text (for use in get_consumption_period)
+    # Also provides the option of providing a date_text (for use in get_date_range)
     def get_dates(self, date_text = None):
         text =  date_text if date_text else self.text
         if type(text) is str:
@@ -279,12 +279,12 @@ class Token:
                                 pass
             return None        
 
-    # checks if token itself is a consumption period of 2 dates
+    # checks if token itself is a date range comprising of 2 dates
     # assumes dates are in the right format: earlier date followed by later date
     # returns None or a list of 2 dates ordered by start / end
     # output example: [['2019-04-14'], ['2019-05-13']]
-    def get_consumption_period(self):
-        consumption_dates = []
+    def get_date_range(self):
+        date_range = []
         text = self.text
         if type(text) is str:
             month_names = set(
@@ -313,11 +313,11 @@ class Token:
                 for date in re_date_slash.group(0).split("-"):
                     #append to self
                     try:
-                        consumption_dates.append(self.get_dates(date))
+                        date_range.append(self.get_dates(date))
                     except:
                         pass
-                if consumption_dates!=[] and len(consumption_dates)==2:
-                    return consumption_dates
+                if date_range!=[] and len(date_range)==2:
+                    return date_range
                     
             # extracts out 15Jun2019-14Jul2019 format
             re_date_months = re.search("\d{1,2}[a-zA-Z]{3}\d{2,4}[-]\d{1,2}[a-zA-Z]{3}\d{2,4}", text_nospaces)
@@ -325,11 +325,11 @@ class Token:
                 for date in re_date_months.group(0).split("-"):
                     #append to self
                     try:
-                        consumption_dates.append(self.get_dates(date))
+                        date_range.append(self.get_dates(date))
                     except:
                         pass
-                if consumption_dates!=[] and len(consumption_dates)==2:
-                    return consumption_dates
+                if date_range!=[] and len(date_range)==2:
+                    return date_range
             
             # extract out 01-31May2018/ 01-31May18 format
             re_date_samemth = re.search("\d{1,2}[-]\d{1,2}[a-zA-Z]{3}\d{2,4}", text_nospaces)
@@ -343,9 +343,9 @@ class Token:
                     later_date = split_date[1]
                     earlier_date = split_date[0] + split_date[1][2:]
                     try:
-                        consumption_dates.append(self.get_dates(earlier_date))
-                        consumption_dates.append(self.get_dates(later_date))
-                        return consumption_dates
+                        date_range.append(self.get_dates(earlier_date))
+                        date_range.append(self.get_dates(later_date))
+                        return date_range
                     except:
                         pass
             
@@ -361,9 +361,9 @@ class Token:
                     later_date = split_date[1]
                     earlier_date = split_date[0] + split_date[1][mth_position+3:]
                     try:
-                        consumption_dates.append(self.get_dates(earlier_date))
-                        consumption_dates.append(self.get_dates(later_date))
-                        return consumption_dates
+                        date_range.append(self.get_dates(earlier_date))
+                        date_range.append(self.get_dates(later_date))
+                        return date_range
                     except Exception as e:
                         print(e)
         
@@ -379,7 +379,7 @@ class Token:
     # =============================================================================
             
             #possibilities -> same month or 2 diff months
-        if consumption_dates==[]:
+        if date_range==[]:
             return None
 
     def set_category(self, category: str):

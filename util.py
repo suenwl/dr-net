@@ -102,6 +102,7 @@ features_to_use = [
     "contains_date",
     "contains_currency",
     "contains_specific_currency",
+    "contains_date_range",
     "contains_address",
     # "contains_num_label", #
     # "contains_total_label", #
