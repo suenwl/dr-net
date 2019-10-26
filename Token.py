@@ -27,7 +27,7 @@ class Token:
         # feature related fields
         self.date_values = self.get_dates()
         self.currency, self.specific_currency = self.get_currency()
-        self.consumption_period_dates = self.is_consumption_period()
+        self.consumption_period_dates = self.get_consumption_period()
         self.address = self.get_address()
         self.num_label,self.invoice_num_label, self.acc_num_label, self.po_num_label = self.get_num_label()
         self.total_label = self.get_total_label()
@@ -151,8 +151,9 @@ class Token:
     
     #Assumes if date is available, it is in 1 token
     #Creates date objects for consistency of formats
-    def get_dates(self):
-        text = self.text
+    # Also provides the option of providing a date_text (for use in get_consumption_period)
+    def get_dates(self, date_text = None):
+        text =  date_text if date_text else self.text
         if type(text) is str:
             month_names = [
                     "jan",
@@ -278,68 +279,11 @@ class Token:
                                 pass
             return None        
 
-    """     # checks if token is a date token
-    def get_dates(self):
-        # TODO parse range of dates and into date objects
-        dates = []
-        text = self.text
-        if type(text) is str:
-            month_names = set(
-                [
-                    "jan",
-                    "feb",
-                    "mar",
-                    "apr",
-                    "may",
-                    "jun",
-                    "jul",
-                    "aug",
-                    "sep",
-                    "oct",
-                    "nov",
-                    "dec",
-                ]
-            )
-
-            # checks for numerical months using regex
-            text_nospaces = text.replace(" ", "")
-            # matches d/dd or d-dd
-            re_date = re.search("\d[/|-]\d\d", text_nospaces)
-            if re_date:
-                dates.append(text_nospaces)
-
-            text_list = text.split(" ")
-
-            # if token has multiple words
-            if len(text_list) > 1:
-                # checks for named months
-                for index, word in enumerate(text_list):
-                    for month in month_names:
-                        if month in word.lower():
-                            date = []
-                            if index > 0:
-                                date.append(text_list[index - 1])
-
-                            date.append(text_list[index])
-
-                            if index < len(text_list) - 1:
-                                date.append(text_list[index + 1])
-
-                            if len(date) > 1:
-                                dates.append(" ".join(date))
-
-            # token has only one word
-            else:
-                for month in month_names:
-                    if month in text_list[0]:
-                        dates.append(text_list[0])
-        return dates """
-    
     # checks if token itself is a consumption period of 2 dates
     # assumes dates are in the right format: earlier date followed by later date
     # returns None or a list of 2 dates ordered by start / end
     # output example: [['2019-04-14'], ['2019-05-13']]
-    def is_consumption_period(self):
+    def get_consumption_period(self):
         consumption_dates = []
         text = self.text
         if type(text) is str:
@@ -365,12 +309,11 @@ class Token:
             #single token
             # extracts out 14/04/19-13/05/19 format       
             re_date_slash = re.search("\d{1,2}[/]\d{1,2}[/]\d{2,4}[-]\d{1,2}[/]\d{1,2}[/]\d{2,4}", text_nospaces)
-            
             if re_date_slash:
                 for date in re_date_slash.group(0).split("-"):
                     #append to self
                     try:
-                        consumption_dates.append(get_dates(date))
+                        consumption_dates.append(self.get_dates(date))
                     except:
                         pass
                 if consumption_dates!=[] and len(consumption_dates)==2:
@@ -382,7 +325,7 @@ class Token:
                 for date in re_date_months.group(0).split("-"):
                     #append to self
                     try:
-                        consumption_dates.append(get_dates(date))
+                        consumption_dates.append(self.get_dates(date))
                     except:
                         pass
                 if consumption_dates!=[] and len(consumption_dates)==2:
@@ -400,8 +343,8 @@ class Token:
                     later_date = split_date[1]
                     earlier_date = split_date[0] + split_date[1][2:]
                     try:
-                        consumption_dates.append(get_dates(earlier_date))
-                        consumption_dates.append(get_dates(later_date))
+                        consumption_dates.append(self.get_dates(earlier_date))
+                        consumption_dates.append(self.get_dates(later_date))
                         return consumption_dates
                     except:
                         pass
@@ -418,11 +361,11 @@ class Token:
                     later_date = split_date[1]
                     earlier_date = split_date[0] + split_date[1][mth_position+3:]
                     try:
-                        consumption_dates.append(get_dates(earlier_date))
-                        consumption_dates.append(get_dates(later_date))
+                        consumption_dates.append(self.get_dates(earlier_date))
+                        consumption_dates.append(self.get_dates(later_date))
                         return consumption_dates
-                    except:
-                        pass
+                    except Exception as e:
+                        print(e)
         
         
     # =============================================================================
