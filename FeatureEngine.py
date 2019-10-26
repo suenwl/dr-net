@@ -402,18 +402,3 @@ class FeatureEngine:
 
         return features
 
-    @classmethod
-    def create_min_distance_feature(self, token: Token, target_tokens: List[Token]):
-        """Returns a float which represents the min distance from the token to any of the tokens in the target_tokens list"""
-        min_distance = float("inf")
-        for target_token in target_tokens:
-            distance = token.get_distance_to(target_token)
-            if distance < min_distance:
-                min_distance = distance
-        return min_distance
-
-    @classmethod
-    def create_alignment_feature(self, token: Token, target_tokens: List[Token]):
-        """Returns a boolean according to whether the token aligns to any of the tokens provided in the target_tokens list"""
-        return any(list(map(token.is_aligned_with, target_tokens)))
-
