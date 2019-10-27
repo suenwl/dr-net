@@ -330,8 +330,10 @@ class Token:
                         pass
                 if date_range!=[] and len(date_range)==2:
                     return date_range
+                else:
+                    date_range=[] #reset  
             
-            # extract out 01-31May2018/ 01-31May18 format
+            # extract out 01-31May2018 or 01-31May18 format
             re_date_samemth = re.search("\d{1,2}[-]\d{1,2}[a-zA-Z]{3}\d{2,4}", text_nospaces)
             if re_date_samemth:
                 mth_position = -1
@@ -366,19 +368,69 @@ class Token:
                         return date_range
                     except Exception as e:
                         print(e)
-        
-        
-    # =============================================================================
-      # Todo: deal with more variations of consumption periods
-      #placeholder for future multitokens assuming combined
-    #         period_multi_token = {1: ["23-Mar-2018", "to", "01-Jun-2018"], 
-    #                       2: [" Service Description for March 2019", " -"," February 2020 "], 
-    #                       3: ["08/06/2016", " to", "07/06/2017 "], 
-    #                       4: ["05 Sep 2018", " -", "04 Sep 2019"], #covered case
-    #                       5: ["Sep", " 1", "", " 2017", " -", " Sep", " 30", ""," 2017"]} #covered
-    # =============================================================================
+
+            # extract out 23-Mar-2018to01-Jun-2018 format
+            re_date_separate_by_to_hyphen = re.search("\d{1,2}[-][a-zA-Z]{3}[-]\d{2,4}[a-zA-Z]{2}\d{1,2}[-][a-zA-Z]{3}[-]\d{2,4}", text_nospaces)
+            if re_date_separate_by_to_hyphen:
+                hyphen_date_list = re_date_separate_by_to_hyphen.group(0).lower().split("to")
+                if len(hyphen_date_list)>1: #separatedbyto
+                    for date in hyphen_date_list:
+                        try:
+                            date_range.append(self.get_dates(date))
+                        except:
+                            pass
+                    if date_range!=[] and len(date_range)==2:
+                        return date_range
+                    else:
+                        date_range=[] #reset  
+
+            # extract out 23/Mar/2018to01/Jun/2018 format
+            re_date_separate_by_to_slash = re.search("\d{1,2}[/][a-zA-Z]{3}[/]\d{2,4}[a-zA-Z]{2}\d{1,2}[/][a-zA-Z]{3}[/]\d{2,4}", text_nospaces)
+            if re_date_separate_by_to_slash:
+                slash_date_list = re_date_separate_by_to_slash.group(0).lower().split("to")
+                if len(slash_date_list)>1: #separatedbyto
+                    for date in slash_date_list:
+                        try:
+                            date_range.append(self.get_dates(date))
+                        except:
+                            pass
+                    if date_range!=[] and len(date_range)==2:
+                        return date_range
+                    else:
+                        date_range=[] #reset            
+
+            # extract out Mar2018toJun2018 format or Mar2018-Jun2018 format   
+            re_date_monthYear_to = re.search("[a-zA-Z]{3}\d{2,4}[a-zA-Z]{2}[a-zA-Z]{3}\d{2,4}", text_nospaces)
+            if re_date_monthYear_to:
+                mth_yearlist = re_date_monthYear_to.group(0).lower().split("to")
+                for date in mth_yearlist:
+                    addDay = "01"+date
+                    try:
+                        date_range.append(self.get_dates(addDay))
+                    except:
+                        pass
+                
+                if date_range!=[] and len(date_range)==2:
+                        return date_range
+                else:
+                    date_range=[] #reset     
             
-            #possibilities -> same month or 2 diff months
+            # extract out Mar2018-Jun2018 format
+            re_date_monthYear_hyphen = re.search("[a-zA-Z]{3}\d{2,4}[-][a-zA-Z]{3}\d{2,4}", text_nospaces)
+            if re_date_monthYear_hyphen:
+                mth_yearlist = re_date_monthYear_hyphen.group(0).lower().split("-")
+                for date in mth_yearlist:
+                    addDay = "01"+date
+                    try:
+                        date_range.append(self.get_dates(addDay))
+                    except:
+                        pass
+                
+                if date_range!=[] and len(date_range)==2:
+                        return date_range
+                else:
+                    date_range=[] #reset  
+
         if date_range==[]:
             return None
 
