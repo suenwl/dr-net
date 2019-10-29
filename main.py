@@ -10,7 +10,7 @@ from config import features_to_use
 print("Starting...")
 invoices = FeatureEngine.load_invoices_and_map_labels(
     "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data",
-    autoload=True,
+    autoload=False,
     verbose=True,
 )
 #%%

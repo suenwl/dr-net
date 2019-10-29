@@ -1,3 +1,43 @@
+"""
+company_tags
+Specifies the keywords that the algorithm uses to detect whether a particular piece of text is a company name
+"""
+company_tags = ["limited", "limited.", "ltd", "ltd."]
+
+"""
+countries
+Specifies the countries that the OCR engine should look out for
+"""
+countries = ["singapore", "japan", "hk", "hong kong"]
+
+
+"""
+tax_labels
+Specifies the keywords that the algorithm uses to detect whether a particular piece of text is related to tax
+"""
+tax_labels = ["gst", "tax", "vat"]
+
+"""
+specific_currencies
+Specifies the currencies which are recognised by the OCR engine as denoting a specific currency
+"""
+specific_currencies = [
+    "SGD",
+    "HKD",
+    "JPY",
+    "USD",
+    "US$",
+    "SG$",
+    "$SG",
+    "$US",
+    "S$",
+    "SINGAPORE DOLLAR",
+]
+
+"""
+currencies
+Specifies the currencies which are recognised by the OCR engine as denoting a currency value
+"""
 currencies = [
     "SGD",
     "HKD",
@@ -14,6 +54,11 @@ currencies = [
     "¥",
 ]
 
+"""
+category_mappings
+Converts between classifier categories and human readable categories.
+If the categories that needs to be predicted changes, this variable should be edited
+"""
 category_mappings = {
     "Others": 0,
     "Account number": 1,
@@ -39,7 +84,11 @@ category_mappings = {
     10: "Total amount",
 }
 
-
+"""
+features_to_use
+Used to select features that are used in the training of the classifier and the prediction of tokens.
+Features which are not commented out will be used in the training and prediction of tokens 
+"""
 features_to_use = [
     # "char_count",
     # "word_count",
