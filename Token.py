@@ -2,6 +2,7 @@
 import pytesseract
 import pandas as pd
 from PIL import Image
+from util import currencies
 from typing import Dict
 from math import sqrt
 import re
@@ -25,8 +26,8 @@ class Token:
 
         # feature related fields
         self.date_values = self.get_dates()
-        self.currency, self.currency_value = self.get_currency()
-        self.consumption_period_dates = self.is_consumption_period()
+        self.currency, self.specific_currency = self.get_currency()
+        self.date_range = self.get_date_range()
         self.address = self.get_address()
         self.num_label,self.invoice_num_label, self.acc_num_label, self.po_num_label = self.get_num_label()
         self.total_label = self.get_total_label()
@@ -52,13 +53,14 @@ class Token:
             return False
 
     def get_tax_label(self):
-        kw = ["gst", "tax"]
+        kw = ["gst", "tax", "vat"]
         negative_kw = ["excl","with","incl"]
         if self.text:
             words = self.text.lower().split(" ")
             no_negative_keywords = not any(word in self.text.lower() for word in negative_kw)
+            no_total_keyword = "total" not in self.text.lower()
             keywords_exist = any(word in self.text.lower() for word in kw)
-            if len(words)<4 and no_negative_keywords and keywords_exist:
+            if len(words)<4 and (no_negative_keywords or no_total_keyword) and keywords_exist:
                 return True
 
     def get_date_label(self):
@@ -87,33 +89,10 @@ class Token:
     # tries to extract address from token
     def get_address(self):
         kw = [
-            "drive",
-            "dr",
-            "road",
-            "rd",
-            "lane",
-            "ln",
-            "ave",
-            "avenue",
-            "street",
-            "jalan",
-            "jln",
-            "boulevard",
-            "blvd",
-            "way",
-            "park",
-            "gate",
-            "crescent",
-            "cres",
             "singapore",
-            "grove",
-            "grv",
-            "lorong",
-            "lor",
-            "valley",
-            "view",
-            "bukit",
-            "tanjong",
+            "japan",
+            "hk",
+            "hong kong"
         ]
         if self.text:
             text_array = self.text.lower().split(" ")
@@ -131,7 +110,7 @@ class Token:
                     return self.text.lower()
     
     def get_amount_label(self):
-        kw = ["amount","amt"]
+        kw = ["amount","amt","charges"]
         if self.text:
             for w in kw:
                 if w in self.text.lower() and len(self.text.split(" ")) < 5:
@@ -156,35 +135,25 @@ class Token:
                     po_num_label = num_label
         return num_label,invoice_num_label, acc_num_label, po_num_label
 
-    # returns a dictionary of {cur: <prefix> , value: <dollar amt> }
-    # eg. {cur: $ , value: 5.00 }
     def get_currency(self):
-        generic_currencies = ["$", "dollar"]
-        specific_currencies = ["¥", "SGD", "HKD" "USD", "US$", "SG$", "$SG", "$US", "S$", "SINGAPORE DOLLAR"]
-        out = {}
-        for cur in generic_currencies + specific_currencies:
+        specific_currencies = ["SGD", "HKD", "JPY", "USD", "US$", "SG$", "$SG", "$US", "S$", "SINGAPORE DOLLAR"]
+        currency = None
+        specific_currency = None
+        for cur in currencies: # See util.py
             if self.text and cur in self.text:
-                out["cur"] = cur
-                start = self.text.index(cur) + len(cur)
-                for i in range(start, len(self.text)):
-                    char = self.text[i]
-                    if not char.isdigit() and not (char in [".", ","]):
-                        break
-                try:
-                    out["val"] = float(self.text[start : i + 1])
-                    if out["cur"] in specific_currencies:
-                        return out["cur"], out["val"] # Only return currency if it refers to a specific currency
-                    else:
-                        return None, out["val"]
-                except:
-                    if out["cur"] in specific_currencies:
-                        return out["cur"], None
-        return None, None
+                currency = cur
+
+        for cur in specific_currencies:
+            if self.text and cur in self.text:
+                specific_currency = cur
+        
+        return currency, specific_currency
     
     #Assumes if date is available, it is in 1 token
     #Creates date objects for consistency of formats
-    def get_dates(self):
-        text = self.text
+    # Also provides the option of providing a date_text (for use in get_date_range)
+    def get_dates(self, date_text = None):
+        text =  date_text if date_text else self.text
         if type(text) is str:
             month_names = [
                     "jan",
@@ -310,69 +279,12 @@ class Token:
                                 pass
             return None        
 
-    """     # checks if token is a date token
-    def get_dates(self):
-        # TODO parse range of dates and into date objects
-        dates = []
-        text = self.text
-        if type(text) is str:
-            month_names = set(
-                [
-                    "jan",
-                    "feb",
-                    "mar",
-                    "apr",
-                    "may",
-                    "jun",
-                    "jul",
-                    "aug",
-                    "sep",
-                    "oct",
-                    "nov",
-                    "dec",
-                ]
-            )
-
-            # checks for numerical months using regex
-            text_nospaces = text.replace(" ", "")
-            # matches d/dd or d-dd
-            re_date = re.search("\d[/|-]\d\d", text_nospaces)
-            if re_date:
-                dates.append(text_nospaces)
-
-            text_list = text.split(" ")
-
-            # if token has multiple words
-            if len(text_list) > 1:
-                # checks for named months
-                for index, word in enumerate(text_list):
-                    for month in month_names:
-                        if month in word.lower():
-                            date = []
-                            if index > 0:
-                                date.append(text_list[index - 1])
-
-                            date.append(text_list[index])
-
-                            if index < len(text_list) - 1:
-                                date.append(text_list[index + 1])
-
-                            if len(date) > 1:
-                                dates.append(" ".join(date))
-
-            # token has only one word
-            else:
-                for month in month_names:
-                    if month in text_list[0]:
-                        dates.append(text_list[0])
-        return dates """
-    
-    # checks if token itself is a consumption period of 2 dates
+    # checks if token itself is a date range comprising of 2 dates
     # assumes dates are in the right format: earlier date followed by later date
     # returns None or a list of 2 dates ordered by start / end
     # output example: [['2019-04-14'], ['2019-05-13']]
-    def is_consumption_period(self):
-        consumption_dates = []
+    def get_date_range(self):
+        date_range = []
         text = self.text
         if type(text) is str:
             month_names = set(
@@ -397,16 +309,15 @@ class Token:
             #single token
             # extracts out 14/04/19-13/05/19 format       
             re_date_slash = re.search("\d{1,2}[/]\d{1,2}[/]\d{2,4}[-]\d{1,2}[/]\d{1,2}[/]\d{2,4}", text_nospaces)
-            
             if re_date_slash:
                 for date in re_date_slash.group(0).split("-"):
                     #append to self
                     try:
-                        consumption_dates.append(get_dates(date))
+                        date_range.append(self.get_dates(date))
                     except:
                         pass
-                if consumption_dates!=[] and len(consumption_dates)==2:
-                    return consumption_dates
+                if date_range!=[] and len(date_range)==2:
+                    return date_range
                     
             # extracts out 15Jun2019-14Jul2019 format
             re_date_months = re.search("\d{1,2}[a-zA-Z]{3}\d{2,4}[-]\d{1,2}[a-zA-Z]{3}\d{2,4}", text_nospaces)
@@ -414,13 +325,15 @@ class Token:
                 for date in re_date_months.group(0).split("-"):
                     #append to self
                     try:
-                        consumption_dates.append(get_dates(date))
+                        date_range.append(self.get_dates(date))
                     except:
                         pass
-                if consumption_dates!=[] and len(consumption_dates)==2:
-                    return consumption_dates
+                if date_range!=[] and len(date_range)==2:
+                    return date_range
+                else:
+                    date_range=[] #reset  
             
-            # extract out 01-31May2018/ 01-31May18 format
+            # extract out 01-31May2018 or 01-31May18 format
             re_date_samemth = re.search("\d{1,2}[-]\d{1,2}[a-zA-Z]{3}\d{2,4}", text_nospaces)
             if re_date_samemth:
                 mth_position = -1
@@ -432,9 +345,9 @@ class Token:
                     later_date = split_date[1]
                     earlier_date = split_date[0] + split_date[1][2:]
                     try:
-                        consumption_dates.append(get_dates(earlier_date))
-                        consumption_dates.append(get_dates(later_date))
-                        return consumption_dates
+                        date_range.append(self.get_dates(earlier_date))
+                        date_range.append(self.get_dates(later_date))
+                        return date_range
                     except:
                         pass
             
@@ -450,25 +363,75 @@ class Token:
                     later_date = split_date[1]
                     earlier_date = split_date[0] + split_date[1][mth_position+3:]
                     try:
-                        consumption_dates.append(get_dates(earlier_date))
-                        consumption_dates.append(get_dates(later_date))
-                        return consumption_dates
+                        date_range.append(self.get_dates(earlier_date))
+                        date_range.append(self.get_dates(later_date))
+                        return date_range
+                    except Exception as e:
+                        print(e)
+
+            # extract out 23-Mar-2018to01-Jun-2018 format
+            re_date_separate_by_to_hyphen = re.search("\d{1,2}[-][a-zA-Z]{3}[-]\d{2,4}[a-zA-Z]{2}\d{1,2}[-][a-zA-Z]{3}[-]\d{2,4}", text_nospaces)
+            if re_date_separate_by_to_hyphen:
+                hyphen_date_list = re_date_separate_by_to_hyphen.group(0).lower().split("to")
+                if len(hyphen_date_list)>1: #separatedbyto
+                    for date in hyphen_date_list:
+                        try:
+                            date_range.append(self.get_dates(date))
+                        except:
+                            pass
+                    if date_range!=[] and len(date_range)==2:
+                        return date_range
+                    else:
+                        date_range=[] #reset  
+
+            # extract out 23/Mar/2018to01/Jun/2018 format
+            re_date_separate_by_to_slash = re.search("\d{1,2}[/][a-zA-Z]{3}[/]\d{2,4}[a-zA-Z]{2}\d{1,2}[/][a-zA-Z]{3}[/]\d{2,4}", text_nospaces)
+            if re_date_separate_by_to_slash:
+                slash_date_list = re_date_separate_by_to_slash.group(0).lower().split("to")
+                if len(slash_date_list)>1: #separatedbyto
+                    for date in slash_date_list:
+                        try:
+                            date_range.append(self.get_dates(date))
+                        except:
+                            pass
+                    if date_range!=[] and len(date_range)==2:
+                        return date_range
+                    else:
+                        date_range=[] #reset            
+
+            # extract out Mar2018toJun2018 format or Mar2018-Jun2018 format   
+            re_date_monthYear_to = re.search("[a-zA-Z]{3}\d{2,4}[a-zA-Z]{2}[a-zA-Z]{3}\d{2,4}", text_nospaces)
+            if re_date_monthYear_to:
+                mth_yearlist = re_date_monthYear_to.group(0).lower().split("to")
+                for date in mth_yearlist:
+                    addDay = "01"+date
+                    try:
+                        date_range.append(self.get_dates(addDay))
                     except:
                         pass
-        
-        
-    # =============================================================================
-      # Todo: deal with more variations of consumption periods
-      #placeholder for future multitokens assuming combined
-    #         period_multi_token = {1: ["23-Mar-2018", "to", "01-Jun-2018"], 
-    #                       2: [" Service Description for March 2019", " -"," February 2020 "], 
-    #                       3: ["08/06/2016", " to", "07/06/2017 "], 
-    #                       4: ["05 Sep 2018", " -", "04 Sep 2019"], #covered case
-    #                       5: ["Sep", " 1", "", " 2017", " -", " Sep", " 30", ""," 2017"]} #covered
-    # =============================================================================
+                
+                if date_range!=[] and len(date_range)==2:
+                        return date_range
+                else:
+                    date_range=[] #reset     
             
-            #possibilities -> same month or 2 diff months
-        if consumption_dates==[]:
+            # extract out Mar2018-Jun2018 format
+            re_date_monthYear_hyphen = re.search("[a-zA-Z]{3}\d{2,4}[-][a-zA-Z]{3}\d{2,4}", text_nospaces)
+            if re_date_monthYear_hyphen:
+                mth_yearlist = re_date_monthYear_hyphen.group(0).lower().split("-")
+                for date in mth_yearlist:
+                    addDay = "01"+date
+                    try:
+                        date_range.append(self.get_dates(addDay))
+                    except:
+                        pass
+                
+                if date_range!=[] and len(date_range)==2:
+                        return date_range
+                else:
+                    date_range=[] #reset  
+
+        if date_range==[]:
             return None
 
     def set_category(self, category: str):

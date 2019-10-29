@@ -56,13 +56,17 @@ predictions = classifier.predict_token_classifications(
 )
 classifier.prediction_summary(predictions=predictions, labels=data["test_labels"])
 
-
 #%%
 invoice = Invoice(
     "C:/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Sales Invoice_test.pdf"
 )
-invoice.do_OCR(verbose=True)
-classifier.predict_invoice_fields(invoice, "Neural Network")
+with open("invoice scores.json", "w") as f:
+    f.write(json.dumps(invoices_perf))
+print("Worst 20 performers:")
+for invoice in invoices_perf[:20]:
+    print(
+        f"Name of invoice: {invoice['name']}     Accuracy: {invoice['overall_accuracy']}"
+    )
 
 #%%
 '''

@@ -27,11 +27,6 @@ If this doesn't work.  Instead, one can try downloading tesseract directly from 
 
 ## Running the code
 
-#### Download nltk data
-```
-python -m nltk.downloader all
-```
-
 #### After adding any packages, update the requirements.txt file before pushing
 ```pip freeze > requirements.txt```
 

@@ -59,7 +59,8 @@ class Invoice:
         if not range:
             range = (0, self.length())
         for page in self.pages[range[0] : range[1]]:
-            page.do_OCR(verbose=verbose)
+            if page.page:
+                page.do_OCR(verbose=verbose)
 
     def get_page(self, page_number: int):
         return self.pages[page_number - 1]
@@ -106,12 +107,16 @@ class Invoice:
 class InvoicePage:
     def __init__(self, image: Image):
         self.page = image
-        self.processed_page = OCREngine.preprocess_image(image)
+        if image:
+            self.processed_page = OCREngine.preprocess_image(image)
+            self.size = {"x": image.size[0], "y": image.size[1]}
+        else:
+            self.processed_page = None
+            self.size = None
         self.tokens = None
         self.grouped_tokens = None
         self.regions = None
         self.tokens_by_block_and_line = None
-        self.size = {"x": image.size[0], "y": image.size[1]}
 
     def load_data(self, data_packet: dict):
         """Loads tokens, grouped_tokens, regions, tokens_by_block_and_line using a data packet. Raises an error if data is already populated"""
@@ -186,14 +191,14 @@ class InvoicePage:
     """
 
     def find_overlapping_token(self, coordinates):
-        OVERLAP_THRESHOLD = 0.3
+        OVERLAP_THRESHOLD = 0.2
         max_overlap = 0
         for token in self.grouped_tokens:
             percentage_overlap = token.get_percentage_overlap(
                 coordinates, self.page.size
             )
             max_overlap = max(max_overlap, percentage_overlap)
-            if percentage_overlap > 0:  # Temporarily setting this to any overlap
+            if percentage_overlap > OVERLAP_THRESHOLD:
                 return token
         return False  # No overlapping tokens found
         # raise Exception(
@@ -266,7 +271,7 @@ class InvoicePage:
             selected_to_draw = []
 
         for token in selected_to_draw:
-            if token.category:  # Emphasise if this token has been labelled
+            if token.category != "Others":  # Emphasise if this token has been labelled
                 draw_rect(canvas, token, (255, 0, 0), 3)
             else:
                 draw_rect(canvas, token, (0, 255, 0))
