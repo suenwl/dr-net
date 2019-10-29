@@ -32,12 +32,12 @@ class Classifier:
         }
 
     def save(self):
-        with open("classifier", "wb") as text_file:
+        with open("classifier.pkl", "wb") as text_file:
             text_file.write(pickle.dumps(self))
 
     def load(self):
-        if os.path.exists("classifier"):
-            classifier = pickle.load(open("classifier", "rb"))
+        if os.path.exists("classifier.pkl"):
+            classifier = pickle.load(open("classifier.pkl", "rb"))
             self.models = classifier.models
         else:
             raise Exception("Classifier save file does not exist")

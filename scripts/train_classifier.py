@@ -17,7 +17,7 @@ TRAINING_DATA_DIR = "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Bus
 
 print("Starting...")
 invoices = FeatureEngine.load_invoices_and_map_labels(
-    TRAINING_DATA_DIR, autoload=True, verbose=True
+    TRAINING_DATA_DIR, autoload=False, verbose=True
 )
 #%%
 print("\nCreating training and testing data...")

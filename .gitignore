@@ -6,3 +6,4 @@ nltk_data
 remove_lines.py
 *.txt
 invoice_predictions.csv
+classifier.pkl
