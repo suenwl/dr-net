@@ -148,8 +148,8 @@ class FeatureEngine:
         features["width"] = token.coordinates["width"]
 
         # distance to edges of page (to nearest point on the box)
-        features["dist_top"] = token.coordinates["y"]
-        features["dist_left"] = token.coordinates["x"]
+        features["rel_dist_top"] = token.coordinates["y"] / invoicePage.size["y"]
+        features["rel_dist_left"] = token.coordinates["x"] / invoicePage.size["x"]
         features["dist_bottom"] = invoicePage.size["y"] - (
             token.coordinates["y"] + token.coordinates["height"]
         )
@@ -224,7 +224,8 @@ class FeatureEngine:
         # boolean if token contains fields
         features["contains_date"] = 1 if token.date_values else 0
         features["contains_currency"] = 1 if token.currency else 0
-        features["contains_currency_value"] = 1 if token.currency_value else 0
+        features["contains_specific_currency"] = 1 if token.specific_currency else 0
+        features["contains_date_range"] = 1 if token.date_range else 0
         features["contains_address"] = 1 if token.address else 0
         features["contains_num_label"] = 1 if token.num_label else 0
         features["contains_total_label"] = 1 if token.total_label else 0
@@ -400,19 +401,4 @@ class FeatureEngine:
         """
 
         return features
-
-    @classmethod
-    def create_min_distance_feature(self, token: Token, target_tokens: List[Token]):
-        """Returns a float which represents the min distance from the token to any of the tokens in the target_tokens list"""
-        min_distance = float("inf")
-        for target_token in target_tokens:
-            distance = token.get_distance_to(target_token)
-            if distance < min_distance:
-                min_distance = distance
-        return min_distance
-
-    @classmethod
-    def create_alignment_feature(self, token: Token, target_tokens: List[Token]):
-        """Returns a boolean according to whether the token aligns to any of the tokens provided in the target_tokens list"""
-        return any(list(map(token.is_aligned_with, target_tokens)))
 

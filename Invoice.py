@@ -191,14 +191,14 @@ class InvoicePage:
     """
 
     def find_overlapping_token(self, coordinates):
-        OVERLAP_THRESHOLD = 0.3
+        OVERLAP_THRESHOLD = 0.2
         max_overlap = 0
         for token in self.grouped_tokens:
             percentage_overlap = token.get_percentage_overlap(
                 coordinates, self.page.size
             )
             max_overlap = max(max_overlap, percentage_overlap)
-            if percentage_overlap > 0:  # Temporarily setting this to any overlap
+            if percentage_overlap > OVERLAP_THRESHOLD:
                 return token
         return False  # No overlapping tokens found
         # raise Exception(
@@ -271,7 +271,7 @@ class InvoicePage:
             selected_to_draw = []
 
         for token in selected_to_draw:
-            if token.category:  # Emphasise if this token has been labelled
+            if token.category != "Others":  # Emphasise if this token has been labelled
                 draw_rect(canvas, token, (255, 0, 0), 3)
             else:
                 draw_rect(canvas, token, (0, 255, 0))

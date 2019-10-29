@@ -36,6 +36,47 @@ def print_progress(current, total, text):
     print(string, end="")
 
 
+def print_tokens_and_features_with_category(invoices, category, selected_features):
+    from FeatureEngine import FeatureEngine
+
+    print("{:30.25} {:15}".format("Invoice name", "Token text"))
+
+    for invoice in invoices:
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                if token.category == category:
+                    generated_features = FeatureEngine.create_features(token, page)
+                    features_to_print = []
+                    for feature in selected_features:
+                        features_to_print.append(generated_features[feature])
+                    print(
+                        "{:30.25} {:15}".format(invoice.readable_name, token.text),
+                        *features_to_print
+                    )
+
+
+def display_invoice(invoices, name_of_invoice, page):
+    for invoice in invoices:
+        if invoice.readable_name == name_of_invoice:
+            invoice.get_page(page).draw_bounding_boxes()
+
+
+currencies = [
+    "SGD",
+    "HKD",
+    "JPY",
+    "USD",
+    "US$",
+    "SG$",
+    "$SG",
+    "$US",
+    "S$",
+    "SINGAPORE DOLLAR",
+    "$",
+    "dollar",
+    "¥",
+]
+
 category_mappings = {
     "Others": 0,
     "Account number": 1,
@@ -67,8 +108,8 @@ features_to_use = [
     # "word_count",
     # "height",
     # "width",
-    # "dist_top",
-    # "dist_left",
+    "rel_dist_top",
+    # "rel_dist_left",
     # "dist_bottom",
     # "dist_right",
     # "dist_top_outer",
@@ -85,22 +126,23 @@ features_to_use = [
     # "percentile_height",
     "contains_date",
     "contains_currency",
-    "contains_currency_value",
+    "contains_specific_currency",
+    "contains_date_range",
     "contains_address",
-    # "contains_num_label",
-    # "contains_total_label",
-    # "contains_amount_label",
-    # "contains_date_label",
-    # "contains_date_of_invoice_label",
+    # "contains_num_label", #
+    # "contains_total_label", #
+    # "contains_amount_label", #
+    # "contains_date_label", #
+    # "contains_date_of_invoice_label", #
     "contains_digit",
     "contains_company",
     # "contains_tax_label",
     # "vert_align_to_cell_w_date",
-    # "vert_align_to_cell_w_currency",
+    "vert_align_to_cell_w_currency",
     # "vert_align_to_cell_w_address",
     "vert_align_to_cell_w_datelabel",
     "vert_align_to_cell_w_dateofinvoicelabel",
-    "vert_align_to_cell_w_numlabel",
+    # "vert_align_to_cell_w_numlabel",
     "vert_align_to_cell_w_totallabel",
     "vert_align_to_cell_w_amountlabel",
     # "vert_align_to_cell_w_digit",
@@ -109,11 +151,11 @@ features_to_use = [
     "vert_align_to_cell_w_ponum_label",
     "vert_align_to_cell_w_tax_label",
     # "hori_align_to_cell_w_date",
-    # "hori_align_to_cell_w_currency",
+    "hori_align_to_cell_w_currency",
     # "hori_align_to_cell_w_address",
     "hori_align_to_cell_w_datelabel",
     "hori_align_to_cell_w_dateofinvoicelabel",
-    "hori_align_to_cell_w_numlabel",
+    # "hori_align_to_cell_w_numlabel",
     "hori_align_to_cell_w_totallabel",
     "hori_align_to_cell_w_amountlabel",
     # "hori_align_to_cell_w_digit",
@@ -122,11 +164,11 @@ features_to_use = [
     "hori_align_to_cell_w_ponum_label",
     "hori_align_to_cell_w_tax_label",
     # "rel_dist_nearest_cell_w_date",
-    # "rel_dist_nearest_cell_w_currency",
+    "rel_dist_nearest_cell_w_currency",
     # "rel_dist_nearest_cell_w_address",
     "rel_dist_nearest_cell_w_datelabel",
     "rel_dist_nearest_cell_w_invoicedatelabel",
-    "rel_dist_nearest_cell_w_numlabel",
+    # "rel_dist_nearest_cell_w_numlabel",
     "rel_dist_nearest_cell_w_invoicenumlabel",
     "rel_dist_nearest_cell_w_accnumlabel",
     "rel_dist_nearest_cell_w_ponumlabel",

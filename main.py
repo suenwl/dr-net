@@ -10,7 +10,7 @@ from util import features_to_use
 print("Starting...")
 invoices = FeatureEngine.load_invoices_and_map_labels(
     "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data",
-    autoload=False,
+    autoload=True,
     verbose=True,
 )
 #%%
@@ -26,12 +26,32 @@ predictions = classifier.predict_token_classifications(
 )
 classifier.prediction_summary(predictions=predictions, labels=data["test_labels"])
 
-
 #%%
-invoice = Invoice(
-    "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data/circles_1.pdf"
+import json
+
+invoices_perf = classifier.sort_invoices_by_predictive_accuracy(
+    invoices, "Neural Network"
 )
-invoice.do_OCR(verbose=True)
-classifier.predict_invoice_fields(invoice, "Neural Network")
+with open("invoice scores.json", "w") as f:
+    f.write(json.dumps(invoices_perf))
+print("Worst 20 performers:")
+for invoice in invoices_perf[:20]:
+    print(
+        f"Name of invoice: {invoice['name']}     Accuracy: {invoice['overall_accuracy']}"
+    )
 
 #%%
+# Write predictions to csv
+classifier = Classifier()
+classifier.load()
+predictions = []
+invoice_names = [invoice.readable_name for invoice in invoices]
+for invoice in invoices:
+    predictions.append(
+        classifier.clean_output(
+            classifier.predict_invoice_fields(invoice, "Neural Network")
+        )
+    )
+classifier.write_predictions_to_csv(predictions, invoice_names)
+
+# %%

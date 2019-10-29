@@ -13,6 +13,8 @@ import pickle
 import os
 import random
 import numpy as np
+import csv
+import re
 
 # testing new feature selection
 # import statsmodels.api as sm
@@ -53,7 +55,7 @@ class Classifier:
         classifier.fit(data, labels)
         self.models["Support Vector Machine"] = classifier
         # save the model to disk
-        # self.save()
+        self.save()
 
     def train_neural_network(self, data, labels):
         # multi-layer perceptron (MLP) algorithm
@@ -63,13 +65,13 @@ class Classifier:
         )
         classifier.fit(data, labels)
         self.models["Neural Network"] = classifier
-        # self.save()
+        self.save()
 
     def train_naive_bayes(self, data, labels):
         classifier = GaussianNB()
         classifier.fit(data, labels)
         self.models["Naive Bayes"] = classifier
-        # self.save()
+        self.save()
 
     def train_random_forest(self, data, labels):
         classifier = RandomForestClassifier(
@@ -77,7 +79,7 @@ class Classifier:
         )
         classifier.fit(data, labels)
         self.models["Random Forest"] = classifier
-        # self.save()
+        self.save()
 
     def train(self, model_name: str, data, labels, max_features="all"):
         # mlp sensitive to feature scaling, plus NN requires this so we standardise scaling first
@@ -205,10 +207,11 @@ class Classifier:
         model = self.models[model_name]
 
         # input_features = self.feature_selector.transform(input_features)
+        map_category_to_position = lambda category: list(model.classes_).index(category)
         predictions = model.predict(input_features)
         prediction_probabilities = model.predict_proba(input_features)
         prediction_confidence = [
-            prediction_probabilities[i][category]
+            prediction_probabilities[i][map_category_to_position(category)]
             for i, category in enumerate(predictions)
         ]
         return {"categories": predictions, "confidence": prediction_confidence}
@@ -238,9 +241,73 @@ class Classifier:
         for index in range(len(categories)):
             category = categories[index]
             if confidence[index] > predicted_categories[category][1]:
-                predicted_categories[category] = (tokens[index], confidence[index])
+                predicted_categories[category] = [tokens[index], confidence[index]]
 
         return predicted_categories
+
+    @classmethod
+    def clean_output(cls,predicted_categories):
+        predicted_categories.pop("Others",None)
+        for key in predicted_categories:
+            relevant_token = predicted_categories[key][0]
+            if not relevant_token:
+                continue
+
+            if key == "Account number" or key == "Invoice number":
+                pattern = re.compile('[\W_]+', re.UNICODE) # By Python definition '\W == [^a-zA-Z0-9_], which excludes all numbers, letters and _
+                predicted_categories[key][0] = re.sub(pattern,"",relevant_token.text)
+            elif key == "Consumption period":
+                predicted_categories[key][0] = relevant_token.date_range
+            elif key == "Country of consumption":
+                if any(country in relevant_token.text.lower() for country in ["singapore", "sg"]):
+                    predicted_categories[key][0] = "Singapore"
+                elif any(country in relevant_token.text.lower() for country in ["hong kong","hk"]):
+                    predicted_categories[key][0] = "Hong Kong"
+                elif any(country in relevant_token.text.lower() for country in ["japan","jp"]):
+                    predicted_categories[key][0] = "Japan"
+            elif key == "Currency of invoice":
+                if any(currency in relevant_token.text.lower() for currency in ["sgd", "sg$", "$sg", "s$","singapore dollar"]):
+                    predicted_categories[key][0] = "SGD"
+                elif any(currency in relevant_token.text.lower() for currency in ["hkd", "hk$", "$hk", "hong kong dollar"]):
+                    predicted_categories[key][0] = "HKD"
+                elif any(currency in relevant_token.text.lower() for currency in ["jpy", "¥", "yen"]):
+                    predicted_categories[key][0] = "JPY"
+            elif key == "Date of invoice":
+                predicted_categories[key][0] = relevant_token.date_values
+            elif key == "Tax" or key == "Total amount":
+                output = re.search("[\d,]+[.]{0,1}[\d]{0,4}",relevant_token.text)
+                if output:
+                    predicted_categories[key][0] = output.group(0)
+        return predicted_categories
+
+
+    def sort_invoices_by_predictive_accuracy(self, invoices, model_name: str):
+        """
+        Takes in a list of invoices, gets their respective predictions using a particular model,
+        and then returns a dictionary for each invoice with the overall accuracy, and boolean
+        for each category to signify whether that category was predicted correctly
+        :returns : A list of dictionaries with three keys (name, overall_accuracy, and detailed_accuracy),
+            sorted in an ascending manner according to the overall accuracy
+        """
+        invoice_predictive_accuracies = []
+
+        for invoice in invoices:
+            predicted_categories = self.predict_invoice_fields(invoice, model_name)
+            predictive_categories_bool = {
+                k: bool(v[0] and k == v[0].category)
+                for (k, v) in predicted_categories.items()
+            }
+            predictive_accuracy = {
+                "name": invoice.readable_name,
+                "overall_accuracy": sum(predictive_categories_bool.values())
+                / len(predictive_categories_bool),
+                "detailed_accuracy": predictive_categories_bool,
+            }
+            invoice_predictive_accuracies.append(predictive_accuracy)
+        return sorted(
+            invoice_predictive_accuracies,
+            key=lambda predictive_accuracy: predictive_accuracy["overall_accuracy"],
+        )
 
     def prediction_summary(self, predictions, labels):
         text_predictions = list(
@@ -248,6 +315,24 @@ class Classifier:
         )
         report = "'" + classification_report(labels, text_predictions)[1:]
         print(report)
+
+    @classmethod
+    def write_predictions_to_csv(cls,predictions,invoice_names):
+        """
+        Writes predictions, which is a list of dictionaries, to a csv file
+        """
+        keys = ["Invoice"] + list(predictions[0].keys())
+        # Add invoice name to data
+        for index, prediction in enumerate(predictions):
+            for field in prediction:
+                prediction[field] = prediction[field][0]
+            prediction["Invoice"] = invoice_names[index]
+        
+        with open('invoice_predictions.csv', 'w') as output_file:
+            dict_writer = csv.DictWriter(output_file, keys)
+            dict_writer.writeheader()
+            dict_writer.writerows(predictions)
+
 
     @classmethod
     def select_features(cls, data, labels, max_number="all"):
