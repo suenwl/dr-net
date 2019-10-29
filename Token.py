@@ -2,7 +2,7 @@
 import pytesseract
 import pandas as pd
 from PIL import Image
-from util import currencies
+from config import specific_currencies, currencies, tax_labels, countries, company_tags
 from typing import Dict
 from math import sqrt
 import re
@@ -53,7 +53,7 @@ class Token:
             return False
 
     def get_tax_label(self):
-        kw = ["gst", "tax", "vat"]
+        kw = tax_labels
         negative_kw = ["excl","with","incl"]
         if self.text:
             words = self.text.lower().split(" ")
@@ -81,19 +81,14 @@ class Token:
             return any(word in self.text.lower() for word in kw)
 
     def get_company(self):
-        kw = ["limited", "limited.", "ltd", "ltd."]
+        kw = company_tags
         if self.text:
             if any(word in self.text.lower() for word in kw):
                 return self.text
 
     # tries to extract address from token
     def get_address(self):
-        kw = [
-            "singapore",
-            "japan",
-            "hk",
-            "hong kong"
-        ]
+        kw = countries
         if self.text:
             text_array = self.text.lower().split(" ")
             for w in kw:
@@ -136,10 +131,9 @@ class Token:
         return num_label,invoice_num_label, acc_num_label, po_num_label
 
     def get_currency(self):
-        specific_currencies = ["SGD", "HKD", "JPY", "USD", "US$", "SG$", "$SG", "$US", "S$", "SINGAPORE DOLLAR"]
         currency = None
         specific_currency = None
-        for cur in currencies: # See util.py
+        for cur in currencies: # See config.py
             if self.text and cur in self.text:
                 currency = cur
 
