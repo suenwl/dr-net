@@ -7,9 +7,39 @@ from Token import Token
 from Classifier import Classifier
 from util import features_to_use
 
+from flask import Flask
+from flask import render_template
+from flask_socketio import SocketIO, send, emit
+
+import time
+import json
+
+app = Flask(__name__, static_folder = 'build/static', template_folder='build')
+app.config['SECRET_KEY'] = 'mysecret'
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+@socketio.on('req-home')
+def handle_home():
+    data = {'test':321}
+    jsn = json.dumps(data)
+    emit('res-home', jsn)
+
+
+if __name__ == '__main__':
+    socketio.run(app, debug=True)
+
+
+'''
+
 print("Starting...")
 invoices = FeatureEngine.load_invoices_and_map_labels(
-    "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data",
+    "C:/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices",
     autoload=False,
     verbose=True,
 )
@@ -29,9 +59,10 @@ classifier.prediction_summary(predictions=predictions, labels=data["test_labels"
 
 #%%
 invoice = Invoice(
-    "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data/circles_1.pdf"
+    "C:/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Sales Invoice_test.pdf"
 )
 invoice.do_OCR(verbose=True)
 classifier.predict_invoice_fields(invoice, "Neural Network")
 
 #%%
+'''
