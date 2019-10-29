@@ -1,6 +1,4 @@
 # Text processing methods go here
-# from invoice2data import extract_data
-# from invoice2data.extract.loader import read_templates
 import pytesseract
 import pandas as pd
 import numpy as np
