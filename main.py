@@ -5,7 +5,7 @@ from FeatureEngine import FeatureEngine
 from Invoice import Invoice
 from Token import Token
 from Classifier import Classifier
-from util import features_to_use
+from config import features_to_use
 
 print("Starting...")
 invoices = FeatureEngine.load_invoices_and_map_labels(

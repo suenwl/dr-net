@@ -1,7 +1,7 @@
 from Invoice import InvoicePage, Invoice
 from Token import Token
 from FeatureEngine import FeatureEngine
-from util import features_to_use, category_mappings
+from config import features_to_use, category_mappings
 from sklearn import svm
 from sklearn.model_selection import GridSearchCV
 from sklearn.naive_bayes import GaussianNB

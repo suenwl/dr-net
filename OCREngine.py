@@ -10,7 +10,7 @@ from pandas import DataFrame
 from PIL import Image, ImageFilter, ImageEnhance
 
 from Token import Token
-from util import currencies
+from config import currencies
 
 # for windows since brew does not work, is there a better way of doing this?
 # pytesseract.pytesseract.tesseract_cmd = "C:/Program Files/Tesseract-OCR/tesseract.exe"

@@ -2,7 +2,7 @@
 import pytesseract
 import pandas as pd
 from PIL import Image
-from util import currencies
+from config import currencies
 from typing import Dict
 from math import sqrt
 import re
@@ -139,7 +139,7 @@ class Token:
         specific_currencies = ["SGD", "HKD", "JPY", "USD", "US$", "SG$", "$SG", "$US", "S$", "SINGAPORE DOLLAR"]
         currency = None
         specific_currency = None
-        for cur in currencies: # See util.py
+        for cur in currencies: # See config.py
             if self.text and cur in self.text:
                 currency = cur
 
