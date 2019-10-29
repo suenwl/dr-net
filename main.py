@@ -5,7 +5,7 @@ from FeatureEngine import FeatureEngine
 from Invoice import Invoice
 from Token import Token
 from Classifier import Classifier
-from util import features_to_use
+from config import features_to_use
 
 from flask import Flask
 from flask import render_template
@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
 print("Starting...")
 invoices = FeatureEngine.load_invoices_and_map_labels(
-    "C:/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices",
+    "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data",
     autoload=False,
     verbose=True,
 )
