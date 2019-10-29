@@ -1,8 +1,23 @@
+"""
+This script loads data from a directory, and trains the classifier.
+The classifier is then saved as a pickle, ready for use in prediction
+"""
+
+#%%
+from OCREngine import OCREngine
+from FeatureEngine import FeatureEngine
+from Invoice import Invoice
+from Token import Token
+from Classifier import Classifier
+from config import features_to_use
+
+
+TRAINING_DATA_DIR = "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data"
+
+
 print("Starting...")
 invoices = FeatureEngine.load_invoices_and_map_labels(
-    "C:/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices",
-    autoload=False,
-    verbose=True,
+    TRAINING_DATA_DIR, autoload=True, verbose=True
 )
 #%%
 print("\nCreating training and testing data...")
@@ -18,8 +33,10 @@ predictions = classifier.predict_token_classifications(
 classifier.prediction_summary(predictions=predictions, labels=data["test_labels"])
 
 #%%
-invoice = Invoice(
-    "C:/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Sales Invoice_test.pdf"
+import json
+
+invoices_perf = classifier.sort_invoices_by_predictive_accuracy(
+    invoices, "Neural Network"
 )
 with open("invoice scores.json", "w") as f:
     f.write(json.dumps(invoices_perf))
@@ -30,4 +47,16 @@ for invoice in invoices_perf[:20]:
     )
 
 #%%
-'''
+# Write predictions to csv
+print("Writing predictions to csv for all invoices")
+classifier = Classifier()
+classifier.load()
+predictions = []
+invoice_names = [invoice.readable_name for invoice in invoices]
+for invoice in invoices:
+    predictions.append(
+        classifier.clean_output(
+            classifier.predict_invoice_fields(invoice, "Neural Network")
+        )
+    )
+classifier.write_predictions_to_csv(predictions, invoice_names)
