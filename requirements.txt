@@ -12,11 +12,14 @@ dateparser==0.7.1
 decorator==4.4.0
 defusedxml==0.6.0
 entrypoints==0.3
+Flask==1.1.1
+Flask-SocketIO==4.2.1
 ipykernel==5.1.2
 ipython==7.8.0
 ipython-genutils==0.2.0
 ipywidgets==7.5.1
 isort==4.3.21
+itsdangerous==1.1.0
 jedi==0.15.1
 Jinja2==2.10.1
 joblib==0.13.2
@@ -50,6 +53,8 @@ PyMuPDF==1.16.1
 pyrsistent==0.15.4
 pytesseract==0.3.0
 python-dateutil==2.8.0
+python-engineio==3.10.0
+python-socketio==4.3.1
 pytz==2019.2
 pywinpty==0.5.5
 PyYAML==5.1.2
@@ -73,5 +78,6 @@ tzlocal==2.0.0
 Unidecode==1.1.1
 wcwidth==0.1.7
 webencodings==0.5.1
+Werkzeug==0.16.0
 widgetsnbextension==3.5.1
 wrapt==1.11.2
