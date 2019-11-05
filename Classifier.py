@@ -258,7 +258,9 @@ class Classifier:
                 predicted_categories[key][0] = re.sub(pattern,"",relevant_token.text)
             elif key == "Consumption period":
                 if relevant_token.date_range:
-                    predicted_categories[key][0] = ";".join(relevant_token.date_range)
+                    start_date = relevant_token.date_range[0][0]
+                    end_date = relevant_token.date_range[1][0]
+                    predicted_categories[key][0] = ";".join([start_date,end_date])
                 else:
                     predicted_categories[key] = (None,0)
             elif key == "Country of consumption":
