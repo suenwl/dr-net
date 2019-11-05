@@ -30,7 +30,9 @@ classifier.train("Neural Network", data["train_data"], data["train_labels"])
 predictions = classifier.predict_token_classifications(
     data["test_data"], "Neural Network"
 )
-classifier.prediction_summary(predictions=predictions, labels=data["test_labels"])
+classifier.prediction_summary(
+    predictions=predictions, labels=data["test_labels"], model="Neural Network"
+)
 
 #%%
 import json

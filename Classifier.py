@@ -30,6 +30,12 @@ class Classifier:
             "Naive Bayes": None,
             "Random Forest": None,
         }
+        self.model_metrics = {
+            "Support Vector Machine": None,
+            "Neural Network": None,
+            "Naive Bayes": None,
+            "Random Forest": None,
+        }
 
     def save(self):
         with open("classifier.pkl", "wb") as text_file:
@@ -39,6 +45,7 @@ class Classifier:
         if os.path.exists("classifier.pkl"):
             classifier = pickle.load(open("classifier.pkl", "rb"))
             self.models = classifier.models
+            self.model_metrics = classifier.model_metrics
         else:
             raise Exception("Classifier save file does not exist")
 
@@ -316,12 +323,13 @@ class Classifier:
             key=lambda predictive_accuracy: predictive_accuracy["overall_accuracy"],
         )
 
-    def prediction_summary(self, predictions, labels):
+    def prediction_summary(self, predictions, labels, model):
         text_predictions = list(
             map(lambda label: category_mappings[label], predictions["categories"])
         )
         report = "'" + classification_report(labels, text_predictions)[1:]
         print(report)
+        self.model_metrics[model] = classification_report(labels, text_predictions,output_dict=True)
 
     @classmethod
     def write_predictions_to_csv(cls,predictions,invoice_names):
