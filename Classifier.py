@@ -257,7 +257,10 @@ class Classifier:
                 pattern = re.compile('[\W_]+', re.UNICODE) # By Python definition '\W == [^a-zA-Z0-9_], which excludes all numbers, letters and _
                 predicted_categories[key][0] = re.sub(pattern,"",relevant_token.text)
             elif key == "Consumption period":
-                predicted_categories[key][0] = relevant_token.date_range
+                if relevant_token.date_range:
+                    predicted_categories[key][0] = ";".join(relevant_token.date_range)
+                else:
+                    predicted_categories[key] = (None,0)
             elif key == "Country of consumption":
                 if any(country in relevant_token.text.lower() for country in ["singapore", "sg"]):
                     predicted_categories[key][0] = "Singapore"
@@ -273,11 +276,13 @@ class Classifier:
                 elif any(currency in relevant_token.text.lower() for currency in ["jpy", "¥", "yen"]):
                     predicted_categories[key][0] = "JPY"
             elif key == "Date of invoice":
-                predicted_categories[key][0] = relevant_token.date_values
+                predicted_categories[key][0] = relevant_token.date_values[0]
             elif key == "Tax" or key == "Total amount":
                 output = re.search("[\d,]+[.]{0,1}[\d]{0,4}",relevant_token.text)
                 if output:
                     predicted_categories[key][0] = output.group(0)
+            else:
+                predicted_categories[key][0] = relevant_token.text
         return predicted_categories
 
 
