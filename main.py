@@ -62,6 +62,24 @@ class InvoiceData(db.Model):
         return self.id
 
 
+class Emmitter:
+    def __init__(self, skt, db):
+        self.skt = skt
+        self.db = db
+
+    def emit_invoices_update(self):
+        invoices = self.db.get_all_invoices_w_data()
+        for i in invoices:
+            if "_sa_instance_state" in i:
+                del i["_sa_instance_state"]
+        jsn = json.dumps(invoices)
+        self.skt.emit("invoices_update", jsn)
+
+    def emit_status_update(self, msg):
+        jsn = json.dumps(msg)
+        socketio.emit("status_update", jsn)
+
+
 class InvoiceDataBase:
     def __init__(self, db):
         self.db = db
@@ -93,56 +111,23 @@ class InvoiceDataBase:
     def update_status(self, id, new_status):
         self.model.query.get(id).status = new_status
         self.db.session.commit()
-        socketio.emit("status_update", {"title": new_status.upper(), "content": id})
-
-        invoices = invoice_database.get_all_invoices_w_data()
-        for i in invoices:
-            del i['_sa_instance_state']
-        jsn = json.dumps(invoices)
-        socketio.emit("invoices_update", jsn)
 
     def update_results(self, id, predictions):
         for key in predictions:
             formatted_key = key.lower().replace(" ", "_")
             inv = self.db.session.query(InvoiceData).get(id)
             val = predictions[key][0]
-            if isinstance(val, str):
-                setattr(inv, formatted_key, val)
+            if val:
+                setattr(inv, formatted_key, str(val))
                 setattr(inv, formatted_key + "_conf", float(predictions[key][1]))
-            elif isinstance(val, list):
-                setattr(inv, formatted_key, val[0])
+            else:
+                setattr(inv, formatted_key, "No Prediction")
                 setattr(inv, formatted_key + "_conf", float(predictions[key][1]))
+            self.update_status(id, "processed")
 
-        self.update_status(id, "processed")
-
-    def test(self):
-        d = {
-            "id": str(random()) + ".pdf",
-            "account_number": "1234567",
-            "consumption_period": "01012010",
-            "country_of_consumption": "hk",
-            "currency_of_invoice": "hkd",
-            "date_of_invoice": "01012010",
-            "invoice_number": "in202130-1",
-            "name_of_provider": "west",
-            "po_number": "po32ds-32",
-            "tax": 0.0,
-            "total_amount": 3000.0,
-            "account_number_conf": random(),
-            "consumption_period_conf": random(),
-            "country_of_consumption_conf": random(),
-            "currency_of_invoice_conf": random(),
-            "date_of_invoice_conf": random(),
-            "invoice_number_conf": random(),
-            "name_of_provider_conf": random(),
-            "po_number_conf": random(),
-            "tax_conf": random(),
-            "total_amount_conf": random(),
-            "status": "unprocessed",
-        }
-        self.insert_invoices(d)
 
 invoice_database = InvoiceDataBase(db)
+socket_emitter = Emmitter(socketio, invoice_database)
 #invoice_database.destroy()
 #invoice_database.create()
 
@@ -152,6 +137,7 @@ class WatcherThread(Thread):
         self.delay = 1
         self.process_queue = []
         self.invoice_db = invoice_database
+        self.classifier = Classifier()
         super(WatcherThread, self).__init__()
 
     @staticmethod
@@ -173,46 +159,58 @@ class WatcherThread(Thread):
                 self.invoice_db.insert_invoice({"id": pdf_file})
                 self.process_queue.append(pdf_file)
 
+    def process_file(self, file):
+        print("Processing " + file)
+
+        # Create Invoice objects
+        invoice = Invoice(invoice_dir + "/" + file)
+        invoice.do_OCR()
+
+        # Get predictions
+        predictions = self.classifier.clean_output(
+            self.classifier.predict_invoice_fields(invoice, "Neural Network")
+        )
+        return predictions
+
     def process_new_files(self):
         num_new_files = len(self.process_queue)
         if num_new_files > 0:
-            socketio.emit(
-                "status_update",
+            print(f"found {num_new_files} files")
+            socket_emitter.emit_status_update(
                 {
                     "title": f"FOUND {num_new_files} NEW FILE(S)",
                     "content": " | ".join(self.process_queue),
-                },
+                }
             )
-            classifier = Classifier()
-            classifier.load()
+            socket_emitter.emit_invoices_update()
             for file in self.process_queue:
-                print("processing " + file)
-                # Update status of file in db
                 self.invoice_db.update_status(file, "processing")
-                invoices = invoice_database.get_all_invoices_w_data()
-
-                #TODO dry this code
-                for i in invoices:
-                    del i['_sa_instance_state']
-                jsn = json.dumps(invoices)
-                socketio.emit("invoices_update", jsn)
-
-
-                # Create invoice object and run OCR
-                invoice = Invoice(invoice_dir + "/" + file)
-                invoice.do_OCR()
-                # Get predictions
-                predictions = classifier.clean_output(
-                    classifier.predict_invoice_fields(invoice, "Neural Network")
+                socket_emitter.emit_status_update(
+                    {"title": "PROCESSING", "content": file}
                 )
-                print('+++++++++++++++++++++++++++++++++++')
-                print(predictions)
-                print('+++++++++++++++++++++++++++++++++++')
-                self.invoice_db.update_results(file, predictions)
-            print("all done", self.invoice_db.get_all_invoices())
+                socket_emitter.emit_invoices_update()
+                try:
+                    print(f"processing {file}")
+                    predictions = self.process_file(file)
+                    self.invoice_db.update_results(file, predictions)
+                    socket_emitter.emit_status_update(
+                        {"title": "PROCESSING COMPLETED", "content": file}
+                    )
+                    print(f"{file} processing completed")
+                except Exception as e:
+                    self.invoice_db.update_status(file, "processing failed")
+                    socket_emitter.emit_status_update(
+                        {"title": "PROCESSING ERROR", "content": file}
+                    )
+                    print(f"ERROR: {id} not processed", e)
+                finally:
+                    socket_emitter.emit_invoices_update()
+
+            print("all done")
             self.process_queue = []
 
     def run(self):
+        self.classifier.load()
         while not thread_stop_event.isSet():
             self.get_new_files()
             self.process_new_files()
@@ -227,11 +225,7 @@ def index():
 
 @socketio.on("req_invoices")
 def handle_invoices_req():
-    invoices = invoice_database.get_all_invoices_w_data()
-    for i in invoices:
-        del i['_sa_instance_state']
-    jsn = json.dumps(invoices)
-    emit("invoices_update", jsn)
+    socket_emitter.emit_invoices_update()
 
 
 @socketio.on("connect")
@@ -258,3 +252,34 @@ if __name__ == "__main__":
 # if __name__ == "__main__":
 # conn = sqlite3.connect('test.db')
 # socketio.run(app, debug=True)
+
+
+"""
+    def test(self):
+        d = {
+            "id": str(random()) + ".pdf",
+            "account_number": "1234567",
+            "consumption_period": "01012010",
+            "country_of_consumption": "hk",
+            "currency_of_invoice": "hkd",
+            "date_of_invoice": "01012010",
+            "invoice_number": "in202130-1",
+            "name_of_provider": "west",
+            "po_number": "po32ds-32",
+            "tax": 0.0,
+            "total_amount": 3000.0,
+            "account_number_conf": random(),
+            "consumption_period_conf": random(),
+            "country_of_consumption_conf": random(),
+            "currency_of_invoice_conf": random(),
+            "date_of_invoice_conf": random(),
+            "invoice_number_conf": random(),
+            "name_of_provider_conf": random(),
+            "po_number_conf": random(),
+            "tax_conf": random(),
+            "total_amount_conf": random(),
+            "status": "unprocessed",
+        }
+        self.insert_invoices(d)
+"""
+
