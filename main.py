@@ -79,6 +79,10 @@ class Emmitter:
         jsn = json.dumps(msg)
         socketio.emit("status_update", jsn)
 
+    def emit_metrics(self, metrics):
+        jsn = json.dumps(metrics)
+        socketio.emit("accuracy_metrics", jsn)
+
 
 class InvoiceDataBase:
     def __init__(self, db):
@@ -128,8 +132,10 @@ class InvoiceDataBase:
 
 invoice_database = InvoiceDataBase(db)
 socket_emitter = Emmitter(socketio, invoice_database)
-#invoice_database.destroy()
-#invoice_database.create()
+classifier = Classifier()
+classifier.load()
+# invoice_database.destroy()
+# invoice_database.create()
 
 
 class WatcherThread(Thread):
@@ -137,7 +143,7 @@ class WatcherThread(Thread):
         self.delay = 1
         self.process_queue = []
         self.invoice_db = invoice_database
-        self.classifier = Classifier()
+        self.classifier = classifier
         super(WatcherThread, self).__init__()
 
     @staticmethod
@@ -210,7 +216,6 @@ class WatcherThread(Thread):
             self.process_queue = []
 
     def run(self):
-        self.classifier.load()
         while not thread_stop_event.isSet():
             self.get_new_files()
             self.process_new_files()
@@ -226,6 +231,13 @@ def index():
 @socketio.on("req_invoices")
 def handle_invoices_req():
     socket_emitter.emit_invoices_update()
+
+
+@socketio.on("req_metrics")
+def handle_metrics_req():
+    metrics = classifier.model_metrics
+    print(metrics)
+    socket_emitter.emit_metrics(metrics)
 
 
 @socketio.on("connect")
