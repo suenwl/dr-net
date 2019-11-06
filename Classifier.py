@@ -285,7 +285,10 @@ class Classifier:
                 elif any(currency in relevant_token.text.lower() for currency in ["jpy", "¥", "yen"]):
                     predicted_categories[key][0] = "JPY"
             elif key == "Date of invoice":
-                predicted_categories[key][0] = relevant_token.date_values[0]
+                if relevant_token.date_values:
+                    predicted_categories[key][0] = relevant_token.date_values[0]
+                else:
+                    predicted_categories[key] = (None,0)
             elif key == "Tax" or key == "Total amount":
                 output = re.search("[\d,]+[.]{0,1}[\d]{0,4}",relevant_token.text)
                 if output:
