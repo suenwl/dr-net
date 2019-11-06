@@ -44,8 +44,8 @@ class Classifier:
     def load(self):
         if os.path.exists("classifier.pkl"):
             classifier = pickle.load(open("classifier.pkl", "rb"))
-            self.models = classifier.models
             self.model_metrics = classifier.model_metrics
+            self.models = classifier.models
         else:
             raise Exception("Classifier save file does not exist")
 
@@ -62,7 +62,6 @@ class Classifier:
         classifier.fit(data, labels)
         self.models["Support Vector Machine"] = classifier
         # save the model to disk
-        self.save()
 
     def train_neural_network(self, data, labels):
         # multi-layer perceptron (MLP) algorithm
@@ -72,13 +71,11 @@ class Classifier:
         )
         classifier.fit(data, labels)
         self.models["Neural Network"] = classifier
-        self.save()
 
     def train_naive_bayes(self, data, labels):
         classifier = GaussianNB()
         classifier.fit(data, labels)
         self.models["Naive Bayes"] = classifier
-        self.save()
 
     def train_random_forest(self, data, labels):
         classifier = RandomForestClassifier(
@@ -86,7 +83,6 @@ class Classifier:
         )
         classifier.fit(data, labels)
         self.models["Random Forest"] = classifier
-        self.save()
 
     def train(self, model_name: str, data, labels, max_features="all"):
         # mlp sensitive to feature scaling, plus NN requires this so we standardise scaling first
@@ -333,6 +329,7 @@ class Classifier:
         report = "'" + classification_report(labels, text_predictions)[1:]
         print(report)
         self.model_metrics[model] = classification_report(labels, text_predictions,output_dict=True)
+        self.save()
 
     @classmethod
     def write_predictions_to_csv(cls,predictions,invoice_names):
