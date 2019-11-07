@@ -98,6 +98,9 @@ class InvoiceDataBase:
     def get_all_invoices(self):
         return self.model.query.all()
 
+    def get_invoice_data(self, inv_name):
+        return self.model.query.get(inv_name).__dict__
+
     def get_all_invoices_w_data(self):
         return [invoice.__dict__ for invoice in self.get_all_invoices()]
 
@@ -134,8 +137,8 @@ invoice_database = InvoiceDataBase(db)
 socket_emitter = Emmitter(socketio, invoice_database)
 classifier = Classifier()
 classifier.load()
-# invoice_database.destroy()
-# invoice_database.create()
+invoice_database.destroy()
+invoice_database.create()
 
 
 class WatcherThread(Thread):
@@ -160,7 +163,7 @@ class WatcherThread(Thread):
         )
         for pdf_file in pdf_only:
             # get from database, see if it is there
-            if not self.invoice_db.contains(pdf_file):
+            if not self.invoice_db.contains(pdf_file) or self.invoice_db.get_invoice_data(pdf_file)['status'] == 'unprocessed':
                 # Insert unprocessed row in database
                 self.invoice_db.insert_invoice({"id": pdf_file})
                 self.process_queue.append(pdf_file)
