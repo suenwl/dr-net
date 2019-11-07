@@ -12,12 +12,12 @@ from Classifier import Classifier
 from config import features_to_use
 
 
-TRAINING_DATA_DIR = "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data"
+TRAINING_DATA_DIR = "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data 2"
 
 
 print("Starting...")
 invoices = FeatureEngine.load_invoices_and_map_labels(
-    TRAINING_DATA_DIR, autoload=False, verbose=True
+    TRAINING_DATA_DIR, autoload=True, verbose=True
 )
 #%%
 print("\nCreating training and testing data...")
@@ -58,7 +58,7 @@ invoice_names = [invoice.readable_name for invoice in invoices]
 for invoice in invoices:
     predictions.append(
         classifier.clean_output(
-            classifier.predict_invoice_fields(invoice, "Neural Network")
+            classifier.predict_invoice_fields(invoice, "Neural Network"), invoice
         )
     )
 classifier.write_predictions_to_csv(predictions, invoice_names)

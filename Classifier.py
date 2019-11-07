@@ -1,6 +1,7 @@
 from Invoice import InvoicePage, Invoice
 from Token import Token
 from FeatureEngine import FeatureEngine
+from util import is_hori_aligned,is_vert_aligned
 from config import features_to_use, category_mappings
 from sklearn import svm
 from sklearn.model_selection import GridSearchCV
@@ -249,7 +250,7 @@ class Classifier:
         return predicted_categories
 
     @classmethod
-    def clean_output(cls,predicted_categories):
+    def clean_output(cls,predicted_categories,invoice):
         predicted_categories.pop("Others",None)
         for key in predicted_categories:
             relevant_token = predicted_categories[key][0]
@@ -291,7 +292,8 @@ class Classifier:
                     predicted_categories[key][0] = output.group(0)
             else:
                 predicted_categories[key][0] = relevant_token.text
-        return predicted_categories
+
+        return RulesBasedClassifier.pad_missing_predictions(predicted_categories,invoice)
 
 
     def sort_invoices_by_predictive_accuracy(self, invoices, model_name: str):
@@ -354,3 +356,87 @@ class Classifier:
         select = SelectKBest(chi2, k=max_number).fit(data, labels)
         list(select.scores_)
 
+class RulesBasedClassifier:
+    @classmethod
+    def pad_missing_predictions(cls,predictions,invoice):
+
+        # predicted_categories = {
+        #     "Account number": (None, 0),
+        #     "Consumption period": (None, 0),
+        #     "Country of consumption": (None, 0),
+        #     "Currency of invoice": (None, 0),
+        #     "Date of invoice": (None, 0),
+        #     "Invoice number": (None, 0),
+        #     "Name of provider": (None, 0),
+        #     "Others": (None, 0),
+        #     "PO Number": (None, 0),
+        #     "Tax": (None, 0),
+        #     "Total amount": (None, 0),
+        # }
+
+        # Obtain predictions which are missing
+        missing_predictions = [key for (key,value) in predictions.items() if value[0] == None]
+        missing_predictions.remove("PO Number")
+
+        for field in missing_predictions:
+            
+            if field == "Country of consumption":
+                predictions["Country of consumption"] = [cls.get_country(invoice),"Rules based"]
+
+            elif field == "Currency of invoice":
+                if predictions["Country of consumption"][0]:
+                    predictions["Currency of invoice"] = [cls.get_currency(predictions),"Rules based"]
+                else:
+                    predictions["Country of consumption"] = [cls.get_country(invoice),"Rules based"]
+                    predictions["Currency of invoice"] = [cls.get_currency(predictions),"Rules based"]
+            
+        return predictions
+
+    
+    @classmethod
+    def nearest_hori_aligned_token(cls,pivot_token,page):
+        smallest_dist = None
+        best_token = None
+        
+        for token in page.grouped_tokens:
+            if is_hori_aligned(pivot_token,token,10):
+                dist = calc_min_dist(pivot_token,token)
+                if dist < smallest_dist:
+                    smallest_dist = dist
+                    best_token = token
+
+        return best_token
+
+    @classmethod
+    def get_country(cls,invoice):
+        country_lookup = {
+            "singapore" : "Singapore",
+            "japan": "Japan", 
+            "hk": "Hong Kong",
+            "hong kong": "Hong Kong"
+        }
+
+        country_counts = {
+                    "Singapore": 0,
+                    "Hong Kong": 0,
+                    "Japan": 0
+                }
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                for country in country_lookup:
+                    if country in token.text:
+                        detected_country = country_lookup[country]
+                        country_counts[detected_country] += 1
+        
+        replacement_country = max(country_counts.items(),key=lambda country: country[1])[0]
+        return replacement_country
+
+    @classmethod
+    def get_currency(cls,predictions):
+        currency_lookup = {
+            "Singapore": "SGD",
+            "Hong Kong": "HKD",
+            "Japan": "JPY"
+        }
+        country = predictions["Country of consumption"][0]
+        return currency_lookup[country]

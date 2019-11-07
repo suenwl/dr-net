@@ -177,7 +177,8 @@ class WatcherThread(Thread):
 
         # Get predictions
         predictions = self.classifier.clean_output(
-            self.classifier.predict_invoice_fields(invoice, "Neural Network")
+            self.classifier.predict_invoice_fields(invoice, "Neural Network"),
+            invoice
         )
         return predictions
 
