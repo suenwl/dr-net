@@ -432,14 +432,25 @@ class Token:
         self.category = category
 
     def is_horizontally_aligned_with(self, token):
-        token_vertical_midpoint = (
-            token.coordinates["y"] + token.coordinates["height"] / 2
-        )
-        return (
-            self.coordinates["y"] < token_vertical_midpoint
-            and token_vertical_midpoint
-            < self.coordinates["y"] + self.coordinates["height"]
-        )
+        def is_hori_aligned(t1, t2, moe):
+            """Returns true if t2 is horizontally aligned with t1 and is to the right of t1"""
+
+            if abs(t1.coordinates["y"] - t2.coordinates["y"]) < moe:
+                return True
+            if (
+                abs(
+                    (t1.coordinates["y"] + t1.coordinates["height"])
+                    - (t2.coordinates["y"] + t2.coordinates["height"])
+                )
+                < moe
+            ):
+                return True
+            t1_midpt_y = t1.coordinates["y"] + (t1.coordinates["height"] / 2)
+            t2_midpt_y = t2.coordinates["y"] + (t2.coordinates["height"] / 2)
+            if abs(t1_midpt_y - t2_midpt_y) < moe:
+                return True
+            return False
+        return is_hori_aligned(self,token, 10)
 
     def is_vertically_aligned_with(self, token):
         token_horizontal_midpoint = (
