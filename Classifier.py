@@ -1,7 +1,7 @@
 from Invoice import InvoicePage, Invoice
 from Token import Token
 from FeatureEngine import FeatureEngine
-from util import is_hori_aligned,is_vert_aligned
+from util import is_hori_aligned,is_vert_aligned, calc_min_dist
 from config import features_to_use, category_mappings
 from sklearn import svm
 from sklearn.model_selection import GridSearchCV
@@ -16,6 +16,7 @@ import random
 import numpy as np
 import csv
 import re
+import math
 
 # testing new feature selection
 # import statsmodels.api as sm
@@ -68,7 +69,7 @@ class Classifier:
         # multi-layer perceptron (MLP) algorithm
         # consider increasing neuron number to match number of features as data set
         classifier = MLPClassifier(
-            solver="lbfgs", alpha=1e-5, hidden_layer_sizes=(30, 30, 30), random_state=1
+            solver="lbfgs", alpha=1e-5, hidden_layer_sizes=(20, 20, 20), random_state=1
         )
         classifier.fit(data, labels)
         self.models["Neural Network"] = classifier
@@ -250,11 +251,11 @@ class Classifier:
         return predicted_categories
 
     @classmethod
-    def clean_output(cls,predicted_categories,invoice):
+    def clean_output(cls,predicted_categories):
         predicted_categories.pop("Others",None)
         for key in predicted_categories:
             relevant_token = predicted_categories[key][0]
-            if not relevant_token:
+            if not relevant_token or type(relevant_token) == str: # If there is no token, or if it is a string
                 continue
 
             if key == "Account number" or key == "Invoice number":
@@ -293,7 +294,15 @@ class Classifier:
             else:
                 predicted_categories[key][0] = relevant_token.text
 
-        return RulesBasedClassifier.pad_missing_predictions(predicted_categories,invoice)
+        return predicted_categories
+
+    @classmethod
+    def finalise_output(cls,predicted_categories,invoice):
+        output = cls.clean_output(predicted_categories) # clean output first so that the rules based classifier has clean data to work with
+        output = RulesBasedClassifier.pad_missing_predictions(output,invoice)
+        output = cls.clean_output(predicted_categories) # clean output one more time since we added new tokens
+        
+        return output
 
 
     def sort_invoices_by_predictive_accuracy(self, invoices, model_name: str):
@@ -376,7 +385,6 @@ class RulesBasedClassifier:
 
         # Obtain predictions which are missing
         missing_predictions = [key for (key,value) in predictions.items() if value[0] == None]
-        missing_predictions.remove("PO Number")
 
         for field in missing_predictions:
             
@@ -384,18 +392,43 @@ class RulesBasedClassifier:
                 predictions["Country of consumption"] = [cls.get_country(invoice),"Rules based"]
 
             elif field == "Currency of invoice":
-                if predictions["Country of consumption"][0]:
+                if predictions["Country of consumption"][0] in ["Singapore", "Hong Kong", "Japan"]:
                     predictions["Currency of invoice"] = [cls.get_currency(predictions),"Rules based"]
                 else:
                     predictions["Country of consumption"] = [cls.get_country(invoice),"Rules based"]
                     predictions["Currency of invoice"] = [cls.get_currency(predictions),"Rules based"]
+            elif field == "Consumption period":
+                replacement = cls.get_consumption_period(invoice)
+                if replacement:
+                    predictions["Consumption period"] = [replacement,"Rules based"]
+            elif field == "Account number":
+                replacement = cls.get_account_number(invoice)
+                if replacement:
+                    predictions["Account number"] = [replacement,"Rules based"]
+            elif field == "Invoice number":
+                replacement = cls.get_invoice_number(invoice)
+                if replacement:
+                    predictions["Invoice number"] = [replacement,"Rules based"]
+            elif field == "Date of invoice":
+                replacement = cls.get_invoice_date(invoice)
+                if replacement:
+                    predictions["Date of invoice"] = [replacement,"Rules based"]
+            elif field == "Name of provider":
+                replacement = cls.get_company(invoice)
+                if replacement:
+                    predictions["Name of provider"] = [replacement,"Rules based"]
+            elif field == "Tax":
+                replacement = cls.get_tax(invoice)
+                if replacement:
+                    predictions["Tax"] = [replacement,"Rules based"]
             
+
         return predictions
 
     
     @classmethod
     def nearest_hori_aligned_token(cls,pivot_token,page):
-        smallest_dist = None
+        smallest_dist = math.inf
         best_token = None
         
         for token in page.grouped_tokens:
@@ -424,7 +457,7 @@ class RulesBasedClassifier:
         for page in invoice.pages:
             for token in page.grouped_tokens:
                 for country in country_lookup:
-                    if country in token.text:
+                    if country in token.text.lower():
                         detected_country = country_lookup[country]
                         country_counts[detected_country] += 1
         
@@ -440,3 +473,129 @@ class RulesBasedClassifier:
         }
         country = predictions["Country of consumption"][0]
         return currency_lookup[country]
+
+    @classmethod
+    def get_consumption_period(cls,invoice):
+        best_token = None
+        best_dist_to_top = math.inf
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                if token.date_range:
+                    if token.coordinates["y"] < best_dist_to_top:
+                        best_token = token
+                        best_dist_to_top = token.coordinates["y"]
+        if best_token:
+            return best_token
+        else:
+            return None
+
+    @classmethod
+    def get_account_number(cls,invoice):
+        account_number_labels = []
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                if token.acc_num_label:
+                    account_number_labels.append((token,page))
+        for label in account_number_labels:
+            replacement = cls.nearest_hori_aligned_token(label[0],label[1])
+            if replacement:
+                return replacement
+        return None
+
+    @classmethod
+    def get_invoice_number(cls,invoice):
+        invoice_number_labels = []
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                if token.invoice_num_label:
+                    invoice_number_labels.append((token,page))
+        for label in invoice_number_labels:
+            replacement = cls.nearest_hori_aligned_token(label[0],label[1])
+            if replacement:
+                return replacement
+        return None
+
+    @classmethod
+    def get_invoice_date(cls,invoice):
+        invoice_date_labels = []
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                if token.date_of_invoice_label:
+                    invoice_date_labels.append((token,page))
+        for label in invoice_date_labels:
+            replacement = cls.nearest_hori_aligned_token(label[0],label[1])
+            if replacement and replacement.date_values:
+                return replacement
+
+        date_labels = []
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                if token.date_label:
+                    date_labels.append((token,page))
+        for label in date_labels:
+            replacement = cls.nearest_hori_aligned_token(label[0],label[1])
+            if replacement and replacement.date_values:
+                return replacement
+        return None
+
+    @classmethod
+    def get_company(cls,invoice):
+        best_token = None
+        best_dist_to_top = math.inf
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                if token.company:
+                    if token.coordinates["y"] < best_dist_to_top:
+                        best_token = token
+                        best_dist_to_top = token.coordinates["y"]
+        if best_token:
+            return best_token
+        else:
+            return None
+
+    @classmethod
+    def get_tax(cls,invoice):
+        tax_labels = []
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                if token.tax_label:
+                    tax_labels.append((token,page))
+
+        # Look at tax labels from the bottom up
+        tax_labels = sorted(tax_labels,key=lambda label : label[0].coordinates["y"], reverse=True)
+        for label in tax_labels:
+            symbol = cls.nearest_hori_aligned_token(label[0],label[1]) 
+            if not symbol:
+                continue
+
+            if symbol.contains_digit: # If not currency sign
+                return symbol
+            elif symbol.currency:
+                symbol_2 = cls.nearest_hori_aligned_token(symbol,label[1]) # Currency values to the right of currency sign
+                if symbol_2 and symbol_2.contains_digit:
+                    return symbol_2
+        return None
+
+    
+    @classmethod
+    def get_total_amount(cls,invoice):
+        total_amount_labels = []
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                if token.total_label and "excl" not in token.text.lower():
+                    total_amount_labels.append((token,page))
+
+        # Look at total labels from the bottom up
+        total_amount_labels = sorted(total_amount_labels,key=lambda label : label[0].coordinates["y"], reverse=True)
+        for label in total_amount_labels:
+            symbol = cls.nearest_hori_aligned_token(label[0],label[1]) 
+            if not symbol:
+                continue
+
+            if symbol.contains_digit: # If not currency sign
+                return symbol
+            elif symbol.currency:
+                symbol_2 = cls.nearest_hori_aligned_token(symbol,label[1]) # Currency values to the right of currency sign
+                if symbol_2 and symbol_2.contains_digit:
+                    return symbol_2
+        return None

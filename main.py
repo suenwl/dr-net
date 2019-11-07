@@ -163,7 +163,10 @@ class WatcherThread(Thread):
         )
         for pdf_file in pdf_only:
             # get from database, see if it is there
-            if not self.invoice_db.contains(pdf_file) or self.invoice_db.get_invoice_data(pdf_file)['status'] == 'unprocessed':
+            if (
+                not self.invoice_db.contains(pdf_file)
+                or self.invoice_db.get_invoice_data(pdf_file)["status"] == "unprocessed"
+            ):
                 # Insert unprocessed row in database
                 self.invoice_db.insert_invoice({"id": pdf_file})
                 self.process_queue.append(pdf_file)
@@ -176,9 +179,8 @@ class WatcherThread(Thread):
         invoice.do_OCR()
 
         # Get predictions
-        predictions = self.classifier.clean_output(
-            self.classifier.predict_invoice_fields(invoice, "Neural Network"),
-            invoice
+        predictions = self.classifier.finalise_output(
+            self.classifier.predict_invoice_fields(invoice, "Neural Network"), invoice
         )
         return predictions
 

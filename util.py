@@ -1,4 +1,5 @@
 import fitz
+import math
 from PIL import Image
 from IPython.display import clear_output, display
 

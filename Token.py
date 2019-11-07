@@ -54,7 +54,7 @@ class Token:
 
     def get_tax_label(self):
         kw = tax_labels
-        negative_kw = ["excl","with","incl"]
+        negative_kw = ["excl","with","incl","before","reg"]
         if self.text:
             words = self.text.lower().split(" ")
             no_negative_keywords = not any(word in self.text.lower() for word in negative_kw)
@@ -82,9 +82,12 @@ class Token:
 
     def get_company(self):
         kw = company_tags
+        negative_company_tags = "unlimited"
         if self.text:
-            if any(word in self.text.lower() for word in kw):
-                return self.text
+            for word in kw:
+                text = self.text.lower()
+                if word in text and negative_company_tags not in text:
+                    return self.text
 
     # tries to extract address from token
     def get_address(self):
@@ -98,7 +101,7 @@ class Token:
 
     # returns the text if "total" or some variant is contained in text and group is fewer than 5 words
     def get_total_label(self):
-        kw = ["total"]
+        kw = ["total","outstanding"]
         if self.text:
             for w in kw:
                 if w in self.text.lower() and len(self.text.split(" ")) < 5:

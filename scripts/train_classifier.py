@@ -10,14 +10,15 @@ from Invoice import Invoice
 from Token import Token
 from Classifier import Classifier
 from config import features_to_use
+from util import missing_fields_percentage
 
 
-TRAINING_DATA_DIR = "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data 2"
+TRAINING_DATA_DIR = "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data"
 
 
 print("Starting...")
 invoices = FeatureEngine.load_invoices_and_map_labels(
-    TRAINING_DATA_DIR, autoload=True, verbose=True
+    TRAINING_DATA_DIR, autoload=False, verbose=True
 )
 #%%
 print("\nCreating training and testing data...")
@@ -50,15 +51,25 @@ for invoice in invoices_perf[:20]:
 
 #%%
 # Write predictions to csv
+print()
 print("Writing predictions to csv for all invoices")
 classifier = Classifier()
 classifier.load()
+predictions_before_cleaning = []
 predictions = []
 invoice_names = [invoice.readable_name for invoice in invoices]
 for invoice in invoices:
-    predictions.append(
-        classifier.clean_output(
-            classifier.predict_invoice_fields(invoice, "Neural Network"), invoice
-        )
-    )
+    pred = classifier.predict_invoice_fields(invoice, "Neural Network")
+    finalised_pred = classifier.finalise_output(pred, invoice)
+    predictions_before_cleaning.append(pred)
+    predictions.append(finalised_pred)
+print()
+print(
+    "Missing fields percentages after padding", missing_fields_percentage(predictions)
+)
+
 classifier.write_predictions_to_csv(predictions, invoice_names)
+
+
+# %%
+
