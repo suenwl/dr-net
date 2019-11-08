@@ -369,20 +369,6 @@ class RulesBasedClassifier:
     @classmethod
     def pad_missing_predictions(cls,predictions,invoice):
 
-        # predicted_categories = {
-        #     "Account number": (None, 0),
-        #     "Consumption period": (None, 0),
-        #     "Country of consumption": (None, 0),
-        #     "Currency of invoice": (None, 0),
-        #     "Date of invoice": (None, 0),
-        #     "Invoice number": (None, 0),
-        #     "Name of provider": (None, 0),
-        #     "Others": (None, 0),
-        #     "PO Number": (None, 0),
-        #     "Tax": (None, 0),
-        #     "Total amount": (None, 0),
-        # }
-
         # Obtain predictions which are missing
         missing_predictions = [key for (key,value) in predictions.items() if value[0] == None]
 
@@ -421,6 +407,10 @@ class RulesBasedClassifier:
                 replacement = cls.get_tax(invoice)
                 if replacement:
                     predictions["Tax"] = [replacement,"Rules based"]
+            elif field == "Total amount":
+                replacement = cls.get_total_amount(invoice)
+                if replacement:
+                    predictions["Total amount"] = [replacement,"Rules based"]
             
 
         return predictions
@@ -576,13 +566,12 @@ class RulesBasedClassifier:
                     return symbol_2
         return None
 
-    
     @classmethod
     def get_total_amount(cls,invoice):
         total_amount_labels = []
         for page in invoice.pages:
             for token in page.grouped_tokens:
-                if token.total_label and "excl" not in token.text.lower():
+                if (token.total_label and "excl" not in token.text.lower()) or ("current" in token.text.lower() and "charge" in token.text.lower()):
                     total_amount_labels.append((token,page))
 
         # Look at total labels from the bottom up
