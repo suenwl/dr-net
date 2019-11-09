@@ -252,7 +252,7 @@ class OCREngine:
             for line in blocks_and_lines[block]:
                 current_line = blocks_and_lines[block][line]
                 current_group = []
-                ADJUSTMENT_FACTOR = 7
+                ADJUSTMENT_FACTOR = 0.25
 
                 # take note of all the IS CURRENCY code that is meant to prevent currency and amount from grouping together
                 for token in current_line:
@@ -268,7 +268,7 @@ class OCREngine:
                         )
                         TOO_FAR = (
                             horizontal_distance_between(token, current_group[-1])
-                            > height_of_current_group / 2 + ADJUSTMENT_FACTOR
+                            > height_of_current_group / 2 + ADJUSTMENT_FACTOR*height_of_current_group
                         )
                         LAST_TOKEN_ENDS_WITH_COLON = current_group[-1].text[-1] == ":"
                         ALIGNED_HORIZONTALLY = token.is_horizontally_aligned_with(
@@ -320,7 +320,7 @@ class OCREngine:
         SHORT_TOKEN = lambda token: len(token.text) < 3
         CURRENCY = lambda token: token.text in currencies
         FOUR_REPEATED_CHAR = (
-            lambda token: re.search(r"(.)\1\1\1", token.text) is not None
+            lambda token: re.search(r"(^a-zA-Z\d\s)\1\1\1", token.text) is not None
         )
         IS_LONG = lambda token: len(token.text) > 40 and not token.address
         

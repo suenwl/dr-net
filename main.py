@@ -27,7 +27,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///invoices.db"
 socketio = SocketIO(app, cors_allowed_origins="*")
 db = SQLAlchemy(app)
 
-invoice_dir = "C:/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices"
+invoice_dir = "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data 2"
 
 thread = Thread()
 thread_stop_event = Event()
@@ -196,8 +196,8 @@ class WatcherThread(Thread):
         invoice.do_OCR()
 
         # Get predictions
-        predictions = self.classifier.clean_output(
-            self.classifier.predict_invoice_fields(invoice, "Neural Network")
+        predictions = self.classifier.finalise_output(
+            self.classifier.predict_invoice_fields(invoice, "Neural Network"), invoice
         )
         return predictions
 

@@ -54,7 +54,7 @@ class Token:
 
     def get_tax_label(self):
         kw = tax_labels
-        negative_kw = ["excl","with","incl"]
+        negative_kw = ["excl","with","incl","before","reg"]
         if self.text:
             words = self.text.lower().split(" ")
             no_negative_keywords = not any(word in self.text.lower() for word in negative_kw)
@@ -82,9 +82,12 @@ class Token:
 
     def get_company(self):
         kw = company_tags
+        negative_company_tags = "unlimited"
         if self.text:
-            if any(word in self.text.lower() for word in kw):
-                return self.text
+            for word in kw:
+                text = self.text.lower()
+                if word in text and negative_company_tags not in text:
+                    return self.text
 
     # tries to extract address from token
     def get_address(self):
@@ -98,7 +101,7 @@ class Token:
 
     # returns the text if "total" or some variant is contained in text and group is fewer than 5 words
     def get_total_label(self):
-        kw = ["total"]
+        kw = ["total","outstanding"]
         if self.text:
             for w in kw:
                 if w in self.text.lower() and len(self.text.split(" ")) < 5:
@@ -432,14 +435,25 @@ class Token:
         self.category = category
 
     def is_horizontally_aligned_with(self, token):
-        token_vertical_midpoint = (
-            token.coordinates["y"] + token.coordinates["height"] / 2
-        )
-        return (
-            self.coordinates["y"] < token_vertical_midpoint
-            and token_vertical_midpoint
-            < self.coordinates["y"] + self.coordinates["height"]
-        )
+        def is_hori_aligned(t1, t2, moe):
+            """Returns true if t2 is horizontally aligned with t1 and is to the right of t1"""
+
+            if abs(t1.coordinates["y"] - t2.coordinates["y"]) < moe:
+                return True
+            if (
+                abs(
+                    (t1.coordinates["y"] + t1.coordinates["height"])
+                    - (t2.coordinates["y"] + t2.coordinates["height"])
+                )
+                < moe
+            ):
+                return True
+            t1_midpt_y = t1.coordinates["y"] + (t1.coordinates["height"] / 2)
+            t2_midpt_y = t2.coordinates["y"] + (t2.coordinates["height"] / 2)
+            if abs(t1_midpt_y - t2_midpt_y) < moe:
+                return True
+            return False
+        return is_hori_aligned(self,token, 10)
 
     def is_vertically_aligned_with(self, token):
         token_horizontal_midpoint = (

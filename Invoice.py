@@ -191,16 +191,23 @@ class InvoicePage:
     """
 
     def find_overlapping_token(self, coordinates):
-        OVERLAP_THRESHOLD = 0.2
+        OVERLAP_THRESHOLD = 0.1
         max_overlap = 0
+        best_token = False
         for token in self.grouped_tokens:
             percentage_overlap = token.get_percentage_overlap(
                 coordinates, self.page.size
             )
-            max_overlap = max(max_overlap, percentage_overlap)
-            if percentage_overlap > OVERLAP_THRESHOLD:
-                return token
-        return False  # No overlapping tokens found
+            if (
+                percentage_overlap > max_overlap
+                and percentage_overlap > OVERLAP_THRESHOLD
+            ):
+                max_overlap = percentage_overlap
+                best_token = token
+        if best_token:
+            return best_token
+        else:
+            return False  # No overlapping tokens found
         # raise Exception(
         #     "No significant overlap between token and label at",
         #     coordinates,

@@ -1,6 +1,7 @@
 from Invoice import InvoicePage, Invoice
 from Token import Token
 from FeatureEngine import FeatureEngine
+from util import is_hori_aligned, is_vert_aligned, calc_min_dist
 from config import features_to_use, category_mappings
 from sklearn import svm
 from sklearn.model_selection import GridSearchCV
@@ -15,6 +16,7 @@ import random
 import numpy as np
 import csv
 import re
+import math
 
 # testing new feature selection
 # import statsmodels.api as sm
@@ -67,7 +69,7 @@ class Classifier:
         # multi-layer perceptron (MLP) algorithm
         # consider increasing neuron number to match number of features as data set
         classifier = MLPClassifier(
-            solver="lbfgs", alpha=1e-5, hidden_layer_sizes=(50, 50, 50), random_state=1
+            solver="lbfgs", alpha=1e-5, hidden_layer_sizes=(20, 20, 20), random_state=1
         )
         classifier.fit(data, labels)
         self.models["Neural Network"] = classifier
@@ -249,50 +251,84 @@ class Classifier:
         return predicted_categories
 
     @classmethod
-    def clean_output(cls,predicted_categories):
-        predicted_categories.pop("Others",None)
+    def clean_output(cls, predicted_categories):
+        predicted_categories.pop("Others", None)
         for key in predicted_categories:
             relevant_token = predicted_categories[key][0]
-            if not relevant_token:
+            if (
+                not relevant_token or type(relevant_token) == str
+            ):  # If there is no token, or if it is a string
                 continue
 
             if key == "Account number" or key == "Invoice number":
-                pattern = re.compile('[\W_]+', re.UNICODE) # By Python definition '\W == [^a-zA-Z0-9_], which excludes all numbers, letters and _
-                predicted_categories[key][0] = re.sub(pattern,"",relevant_token.text)
+                pattern = re.compile(
+                    "[\W_]+", re.UNICODE
+                )  # By Python definition '\W == [^a-zA-Z0-9_], which excludes all numbers, letters and _
+                predicted_categories[key][0] = re.sub(pattern, "", relevant_token.text)
             elif key == "Consumption period":
                 if relevant_token.date_range:
                     start_date = relevant_token.date_range[0][0]
                     end_date = relevant_token.date_range[1][0]
-                    predicted_categories[key][0] = ";".join([start_date,end_date])
+                    predicted_categories[key][0] = ";".join([start_date, end_date])
                 else:
-                    predicted_categories[key] = (None,0)
+                    predicted_categories[key] = (None, 0)
             elif key == "Country of consumption":
-                if any(country in relevant_token.text.lower() for country in ["singapore", "sg"]):
+                if any(
+                    country in relevant_token.text.lower()
+                    for country in ["singapore", "sg"]
+                ):
                     predicted_categories[key][0] = "Singapore"
-                elif any(country in relevant_token.text.lower() for country in ["hong kong","hk"]):
+                elif any(
+                    country in relevant_token.text.lower()
+                    for country in ["hong kong", "hk"]
+                ):
                     predicted_categories[key][0] = "Hong Kong"
-                elif any(country in relevant_token.text.lower() for country in ["japan","jp"]):
+                elif any(
+                    country in relevant_token.text.lower()
+                    for country in ["japan", "jp"]
+                ):
                     predicted_categories[key][0] = "Japan"
             elif key == "Currency of invoice":
-                if any(currency in relevant_token.text.lower() for currency in ["sgd", "sg$", "$sg", "s$","singapore dollar"]):
+                if any(
+                    currency in relevant_token.text.lower()
+                    for currency in ["sgd", "sg$", "$sg", "s$", "singapore dollar"]
+                ):
                     predicted_categories[key][0] = "SGD"
-                elif any(currency in relevant_token.text.lower() for currency in ["hkd", "hk$", "$hk", "hong kong dollar"]):
+                elif any(
+                    currency in relevant_token.text.lower()
+                    for currency in ["hkd", "hk$", "$hk", "hong kong dollar"]
+                ):
                     predicted_categories[key][0] = "HKD"
-                elif any(currency in relevant_token.text.lower() for currency in ["jpy", "¥", "yen"]):
+                elif any(
+                    currency in relevant_token.text.lower()
+                    for currency in ["jpy", "¥", "yen"]
+                ):
                     predicted_categories[key][0] = "JPY"
             elif key == "Date of invoice":
                 if relevant_token.date_values:
                     predicted_categories[key][0] = relevant_token.date_values[0]
                 else:
-                    predicted_categories[key] = (None,0)
+                    predicted_categories[key] = (None, 0)
             elif key == "Tax" or key == "Total amount":
-                output = re.search("[\d,]+[.]{0,1}[\d]{0,4}",relevant_token.text)
+                output = re.search("[\d,]+[.]{0,1}[\d]{0,4}", relevant_token.text)
                 if output:
                     predicted_categories[key][0] = output.group(0)
             else:
                 predicted_categories[key][0] = relevant_token.text
+
         return predicted_categories
 
+    @classmethod
+    def finalise_output(cls, predicted_categories, invoice):
+        output = cls.clean_output(
+            predicted_categories
+        )  # clean output first so that the rules based classifier has clean data to work with
+        output = RulesBasedClassifier.pad_missing_predictions(output, invoice)
+        output = cls.clean_output(
+            predicted_categories
+        )  # clean output one more time since we added new tokens
+
+        return output
 
     def sort_invoices_by_predictive_accuracy(self, invoices, model_name: str):
         """
@@ -328,11 +364,13 @@ class Classifier:
         )
         report = "'" + classification_report(labels, text_predictions)[1:]
         print(report)
-        self.model_metrics[model] = classification_report(labels, text_predictions,output_dict=True)
+        self.model_metrics[model] = classification_report(
+            labels, text_predictions, output_dict=True
+        )
         self.save()
 
     @classmethod
-    def write_predictions_to_csv(cls,predictions,invoice_names):
+    def write_predictions_to_csv(cls, predictions, invoice_names):
         """
         Writes predictions, which is a list of dictionaries, to a csv file
         """
@@ -342,15 +380,260 @@ class Classifier:
             for field in prediction:
                 prediction[field] = prediction[field][0]
             prediction["Invoice"] = invoice_names[index]
-        
-        with open('invoice_predictions.csv', 'w') as output_file:
+
+        with open("invoice_predictions.csv", "w") as output_file:
             dict_writer = csv.DictWriter(output_file, keys)
             dict_writer.writeheader()
             dict_writer.writerows(predictions)
-
 
     @classmethod
     def select_features(cls, data, labels, max_number="all"):
         select = SelectKBest(chi2, k=max_number).fit(data, labels)
         list(select.scores_)
 
+
+class RulesBasedClassifier:
+    @classmethod
+    def pad_missing_predictions(cls, predictions, invoice):
+
+        # Obtain predictions which are missing
+        missing_predictions = [
+            key for (key, value) in predictions.items() if value[0] == None
+        ]
+
+        for field in missing_predictions:
+
+            if field == "Country of consumption":
+                predictions["Country of consumption"] = [
+                    cls.get_country(invoice),
+                    "Rules based",
+                ]
+
+            elif field == "Currency of invoice":
+                if predictions["Country of consumption"][0] in [
+                    "Singapore",
+                    "Hong Kong",
+                    "Japan",
+                ]:
+                    predictions["Currency of invoice"] = [
+                        cls.get_currency(predictions),
+                        "Rules based",
+                    ]
+                else:
+                    predictions["Country of consumption"] = [
+                        cls.get_country(invoice),
+                        "Rules based",
+                    ]
+                    predictions["Currency of invoice"] = [
+                        cls.get_currency(predictions),
+                        "Rules based",
+                    ]
+            elif field == "Consumption period":
+                replacement = cls.get_consumption_period(invoice)
+                if replacement:
+                    predictions["Consumption period"] = [replacement, "Rules based"]
+            elif field == "Account number":
+                replacement = cls.get_account_number(invoice)
+                if replacement:
+                    predictions["Account number"] = [replacement, "Rules based"]
+            elif field == "Invoice number":
+                replacement = cls.get_invoice_number(invoice)
+                if replacement:
+                    predictions["Invoice number"] = [replacement, "Rules based"]
+            elif field == "Date of invoice":
+                replacement = cls.get_invoice_date(invoice)
+                if replacement:
+                    predictions["Date of invoice"] = [replacement, "Rules based"]
+            elif field == "Name of provider":
+                replacement = cls.get_company(invoice)
+                if replacement:
+                    predictions["Name of provider"] = [replacement, "Rules based"]
+            elif field == "Tax":
+                replacement = cls.get_tax(invoice)
+                if replacement:
+                    predictions["Tax"] = [replacement, "Rules based"]
+            elif field == "Total amount":
+                replacement = cls.get_total_amount(invoice)
+                if replacement:
+                    predictions["Total amount"] = [replacement, "Rules based"]
+
+        return predictions
+
+    @classmethod
+    def nearest_hori_aligned_token(cls, pivot_token, page):
+        smallest_dist = math.inf
+        best_token = None
+
+        for token in page.grouped_tokens:
+            if is_hori_aligned(pivot_token, token, 10):
+                dist = calc_min_dist(pivot_token, token)
+                if dist < smallest_dist:
+                    smallest_dist = dist
+                    best_token = token
+
+        return best_token
+
+    @classmethod
+    def get_country(cls, invoice):
+        country_lookup = {
+            "singapore": "Singapore",
+            "japan": "Japan",
+            "hk": "Hong Kong",
+            "hong kong": "Hong Kong",
+        }
+
+        country_counts = {"Singapore": 0, "Hong Kong": 0, "Japan": 0}
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                for country in country_lookup:
+                    if country in token.text.lower():
+                        detected_country = country_lookup[country]
+                        country_counts[detected_country] += 1
+
+        replacement_country = max(
+            country_counts.items(), key=lambda country: country[1]
+        )[0]
+        return replacement_country
+
+    @classmethod
+    def get_currency(cls, predictions):
+        currency_lookup = {"Singapore": "SGD", "Hong Kong": "HKD", "Japan": "JPY"}
+        country = predictions["Country of consumption"][0]
+        return currency_lookup[country]
+
+    @classmethod
+    def get_consumption_period(cls, invoice):
+        best_token = None
+        best_dist_to_top = math.inf
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                if token.date_range:
+                    if token.coordinates["y"] < best_dist_to_top:
+                        best_token = token
+                        best_dist_to_top = token.coordinates["y"]
+        if best_token:
+            return best_token
+        else:
+            return None
+
+    @classmethod
+    def get_account_number(cls, invoice):
+        account_number_labels = []
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                if token.acc_num_label:
+                    account_number_labels.append((token, page))
+        for label in account_number_labels:
+            replacement = cls.nearest_hori_aligned_token(label[0], label[1])
+            if replacement:
+                return replacement
+        return None
+
+    @classmethod
+    def get_invoice_number(cls, invoice):
+        invoice_number_labels = []
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                if token.invoice_num_label:
+                    invoice_number_labels.append((token, page))
+        for label in invoice_number_labels:
+            replacement = cls.nearest_hori_aligned_token(label[0], label[1])
+            if replacement:
+                return replacement
+        return None
+
+    @classmethod
+    def get_invoice_date(cls, invoice):
+        invoice_date_labels = []
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                if token.date_of_invoice_label:
+                    invoice_date_labels.append((token, page))
+        for label in invoice_date_labels:
+            replacement = cls.nearest_hori_aligned_token(label[0], label[1])
+            if replacement and replacement.date_values:
+                return replacement
+
+        date_labels = []
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                if token.date_label:
+                    date_labels.append((token, page))
+        for label in date_labels:
+            replacement = cls.nearest_hori_aligned_token(label[0], label[1])
+            if replacement and replacement.date_values:
+                return replacement
+        return None
+
+    @classmethod
+    def get_company(cls, invoice):
+        best_token = None
+        best_dist_to_top = math.inf
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                if token.company:
+                    if token.coordinates["y"] < best_dist_to_top:
+                        best_token = token
+                        best_dist_to_top = token.coordinates["y"]
+        if best_token:
+            return best_token
+        else:
+            return None
+
+    @classmethod
+    def get_tax(cls, invoice):
+        tax_labels = []
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                if token.tax_label:
+                    tax_labels.append((token, page))
+
+        # Look at tax labels from the bottom up
+        tax_labels = sorted(
+            tax_labels, key=lambda label: label[0].coordinates["y"], reverse=True
+        )
+        for label in tax_labels:
+            symbol = cls.nearest_hori_aligned_token(label[0], label[1])
+            if not symbol:
+                continue
+
+            if symbol.contains_digit:  # If not currency sign
+                return symbol
+            elif symbol.currency:
+                symbol_2 = cls.nearest_hori_aligned_token(
+                    symbol, label[1]
+                )  # Currency values to the right of currency sign
+                if symbol_2 and symbol_2.contains_digit:
+                    return symbol_2
+        return None
+
+    @classmethod
+    def get_total_amount(cls, invoice):
+        total_amount_labels = []
+        for page in invoice.pages:
+            for token in page.grouped_tokens:
+                if (token.total_label and "excl" not in token.text.lower()) or (
+                    "current" in token.text.lower() and "charge" in token.text.lower()
+                ):
+                    total_amount_labels.append((token, page))
+
+        # Look at total labels from the bottom up
+        total_amount_labels = sorted(
+            total_amount_labels,
+            key=lambda label: label[0].coordinates["y"],
+            reverse=True,
+        )
+        for label in total_amount_labels:
+            symbol = cls.nearest_hori_aligned_token(label[0], label[1])
+            if not symbol:
+                continue
+
+            if symbol.contains_digit:  # If not currency sign
+                return symbol
+            elif symbol.currency:
+                symbol_2 = cls.nearest_hori_aligned_token(
+                    symbol, label[1]
+                )  # Currency values to the right of currency sign
+                if symbol_2 and symbol_2.contains_digit:
+                    return symbol_2
+        return None
