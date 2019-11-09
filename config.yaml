@@ -1,0 +1,26 @@
+invoice_dir: C:/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices
+clean_database: True
+
+categories:
+  Telco:
+    - LIBERTY WIRELESS PTE LTD
+    - Singapore Telecommunications Limited
+    - StarHub Ltd
+    - Zero! Pte Ltd
+  
+  Infrastructure:
+    - HipVan Pte. Ltd.
+    - IKANO Pte Ltd
+    - KAWAJUN Singapore Pte Ltd
+    - Castlery Pte Ltd
+
+  Operations:
+    - Google Asia Pacific Pte. Ltd.
+    - Singapore Chinese Chamber Institute of Business
+  
+  Services:
+    - MSIG Insurance (Singapore) Pte. Ltd.
+    - CONJUNCT CONSULTING (SINGAPORE) LIMITED
+    - Rentokil Initial Singapore Pte Ltd
+
+  

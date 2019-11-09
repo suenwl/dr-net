@@ -21,6 +21,7 @@ import enum
 import time
 import json
 import csv
+import yaml
 
 app = Flask(__name__, static_folder="build/static", template_folder="build")
 app.config["SECRET_KEY"] = "mysecret"
@@ -28,7 +29,12 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///invoices.db"
 socketio = SocketIO(app, cors_allowed_origins="*")
 db = SQLAlchemy(app)
 
-invoice_dir = "C:/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices"
+with open(r"config.yaml") as file:
+    config = yaml.load(file, Loader=yaml.FullLoader)
+
+invoice_dir = config["invoice_dir"]
+invoice_categories = config["categories"]
+clean_database = config["clean_database"]
 
 thread = Thread()
 thread_stop_event = Event()
@@ -46,6 +52,7 @@ class InvoiceData(db.Model):
     po_number = db.Column(db.String)
     tax = db.Column(db.String)
     total_amount = db.Column(db.String)
+    category = db.Column(db.String)
 
     account_number_conf = db.Column(db.Float)
     consumption_period_conf = db.Column(db.Float)
@@ -137,10 +144,13 @@ class InvoiceDataBase:
         data_to_write = [
             {k: v for k, v in invoice.items() if k in fields} for invoice in data
         ]
-        with open("invoice_db.csv", "w") as output_file:
-            dict_writer = csv.DictWriter(output_file, fields)
-            dict_writer.writeheader()
-            dict_writer.writerows(data_to_write)
+        try:
+            with open("invoice_db.csv", "w") as output_file:
+                dict_writer = csv.DictWriter(output_file, fields)
+                dict_writer.writeheader()
+                dict_writer.writerows(data_to_write)
+        except Exception as e:
+            print("Cannot write to file: ", e)
 
     def insert_invoice(self, data):
         i = self.model(**data)
@@ -169,6 +179,11 @@ class InvoiceDataBase:
             val = predictions[key][0]
             if val:
                 setattr(inv, formatted_key, str(val))
+                if key == "Name of provider":
+                    setattr(inv, "category", "Others")
+                    for sub_cat in invoice_categories:
+                        if val in invoice_categories[sub_cat]:
+                            setattr(inv, "category", sub_cat)
                 try:
                     setattr(inv, formatted_key + "_conf", float(predictions[key][1]))
                 except:
@@ -184,8 +199,9 @@ invoice_database = InvoiceDataBase(db)
 socket_emitter = Emmitter(invoice_database)
 classifier = Classifier()
 classifier.load()
-invoice_database.destroy()
-invoice_database.create()
+if clean_database:
+    invoice_database.destroy()
+    invoice_database.create()
 
 
 class WatcherThread(Thread):
@@ -251,7 +267,6 @@ class WatcherThread(Thread):
                 try:
                     print(f"processing {file}")
                     predictions = self.process_file(file)
-                    print(predictions)
 
                     self.invoice_db.update_results(file, predictions)
                     socket_emitter.emit_status_update(
