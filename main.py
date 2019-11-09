@@ -11,8 +11,9 @@ from os import listdir
 
 from flask import Flask
 from flask import render_template
+from flask import request
 from flask_sqlalchemy import SQLAlchemy
-from flask_socketio import SocketIO, send, emit
+from flask_socketio import SocketIO
 from threading import Thread, Event
 from time import sleep
 import enum
@@ -63,8 +64,7 @@ class InvoiceData(db.Model):
 
 
 class Emmitter:
-    def __init__(self, skt, db):
-        self.skt = skt
+    def __init__(self, db):
         self.db = db
 
     def emit_invoices_update(self):
@@ -73,7 +73,7 @@ class Emmitter:
             if "_sa_instance_state" in i:
                 del i["_sa_instance_state"]
         jsn = json.dumps(invoices)
-        self.skt.emit("invoices_update", jsn)
+        socketio.emit("invoices_update", jsn)
 
     def emit_status_update(self, msg):
         jsn = json.dumps(msg)
@@ -82,6 +82,14 @@ class Emmitter:
     def emit_metrics(self, metrics):
         jsn = json.dumps(metrics)
         socketio.emit("accuracy_metrics", jsn)
+
+    def emit_num_invoices_update(self):
+        invoices = self.db.get_all_invoices_w_data()
+        for i in invoices:
+            if "_sa_instance_state" in i:
+                del i["_sa_instance_state"]
+        jsn = json.dumps(invoices)
+        socketio.emit("num_invoices_update", jsn)
 
 
 class InvoiceDataBase:
@@ -115,6 +123,15 @@ class InvoiceDataBase:
         self.db.session.add(i)
         self.db.session.commit()
 
+    def update_invoice(self, id, data):
+        for field in data:
+            col = field["name"].lower().replace(" ", "_")
+            val = field["value"]
+            inv = self.db.session.query(self.model).get(id)
+            setattr(inv, col, val)
+        setattr(inv, "status", "reviewed")
+        self.db.session.commit()
+
     def update_status(self, id, new_status):
         self.model.query.get(id).status = new_status
         self.db.session.commit()
@@ -122,7 +139,7 @@ class InvoiceDataBase:
     def update_results(self, id, predictions):
         for key in predictions:
             formatted_key = key.lower().replace(" ", "_")
-            inv = self.db.session.query(InvoiceData).get(id)
+            inv = self.db.session.query(self.model).get(id)
             val = predictions[key][0]
             if val:
                 setattr(inv, formatted_key, str(val))
@@ -134,7 +151,7 @@ class InvoiceDataBase:
 
 
 invoice_database = InvoiceDataBase(db)
-socket_emitter = Emmitter(socketio, invoice_database)
+socket_emitter = Emmitter(invoice_database)
 classifier = Classifier()
 classifier.load()
 invoice_database.destroy()
@@ -163,7 +180,10 @@ class WatcherThread(Thread):
         )
         for pdf_file in pdf_only:
             # get from database, see if it is there
-            if not self.invoice_db.contains(pdf_file) or self.invoice_db.get_invoice_data(pdf_file)['status'] == 'unprocessed':
+            if (
+                not self.invoice_db.contains(pdf_file)
+                or self.invoice_db.get_invoice_data(pdf_file)["status"] == "unprocessed"
+            ):
                 # Insert unprocessed row in database
                 self.invoice_db.insert_invoice({"id": pdf_file})
                 self.process_queue.append(pdf_file)
@@ -222,7 +242,7 @@ class WatcherThread(Thread):
         while not thread_stop_event.isSet():
             self.get_new_files()
             self.process_new_files()
-            print("starting new watch cycle")
+            # print("starting new watch cycle")
             sleep(self.delay)
 
 
@@ -238,63 +258,41 @@ def handle_invoices_req():
 
 @socketio.on("req_metrics")
 def handle_metrics_req():
-    metrics = classifier.model_metrics
-    print(metrics)
+    metrics = classifier.model_metrics["Neural Network"]
     socket_emitter.emit_metrics(metrics)
+
+
+@socketio.on("req_invoice_details_update")
+def handle_update_invoice_details(data):
+    invoice_database.update_invoice(data["filename"], data["data"])
+    socket_emitter.emit_status_update(
+        {
+            "title": "INVOICE UPDATED",
+            "content": f"{data['filename']} has been reviewed and updated",
+        }
+    )
+    socket_emitter.emit_invoices_update()
 
 
 @socketio.on("connect")
 def test_connect():
-    # need visibility of the global thread object
-    global thread
-    print("Client connected")
-
-    # Start the random number generator thread only if the thread has not been started before.
-    if not thread.isAlive():
-        print("Starting Thread")
-        thread = WatcherThread()
-        thread.start()
+    print(f"Client id:{request.sid} connected")
+    run_watcher()
+    
 
 
 @socketio.on("disconnect")
 def test_disconnect():
     print("Client disconnected")
 
+def run_watcher():
+    global thread
+    if not thread.isAlive():
+        print(" ============ Watcher Thread Started ============ ")
+        thread = WatcherThread()
+        thread.start()
 
 if __name__ == "__main__":
     socketio.run(app)
 
-# if __name__ == "__main__":
-# conn = sqlite3.connect('test.db')
-# socketio.run(app, debug=True)
-
-
-"""
-    def test(self):
-        d = {
-            "id": str(random()) + ".pdf",
-            "account_number": "1234567",
-            "consumption_period": "01012010",
-            "country_of_consumption": "hk",
-            "currency_of_invoice": "hkd",
-            "date_of_invoice": "01012010",
-            "invoice_number": "in202130-1",
-            "name_of_provider": "west",
-            "po_number": "po32ds-32",
-            "tax": 0.0,
-            "total_amount": 3000.0,
-            "account_number_conf": random(),
-            "consumption_period_conf": random(),
-            "country_of_consumption_conf": random(),
-            "currency_of_invoice_conf": random(),
-            "date_of_invoice_conf": random(),
-            "invoice_number_conf": random(),
-            "name_of_provider_conf": random(),
-            "po_number_conf": random(),
-            "tax_conf": random(),
-            "total_amount_conf": random(),
-            "status": "unprocessed",
-        }
-        self.insert_invoices(d)
-"""
 
