@@ -27,7 +27,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///invoices.db"
 socketio = SocketIO(app, cors_allowed_origins="*")
 db = SQLAlchemy(app)
 
-invoice_dir = "/Users/suenwailun/Sync Documents/University/Y4S1/BT3101 Business Analytics Capstone Project/Training data 2"
+invoice_dir = "C:/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices"
 
 thread = Thread()
 thread_stop_event = Event()
@@ -143,10 +143,13 @@ class InvoiceDataBase:
             val = predictions[key][0]
             if val:
                 setattr(inv, formatted_key, str(val))
-                setattr(inv, formatted_key + "_conf", float(predictions[key][1]))
+                try:
+                    setattr(inv, formatted_key + "_conf", float(predictions[key][1]))
+                except:
+                    setattr(inv, formatted_key + "_conf", -0.0001)
             else:
                 setattr(inv, formatted_key, "No Prediction")
-                setattr(inv, formatted_key + "_conf", float(predictions[key][1]))
+                setattr(inv, formatted_key + "_conf", 0.0)
             self.update_status(id, "processed")
 
 
@@ -221,6 +224,8 @@ class WatcherThread(Thread):
                 try:
                     print(f"processing {file}")
                     predictions = self.process_file(file)
+                    print(predictions)
+
                     self.invoice_db.update_results(file, predictions)
                     socket_emitter.emit_status_update(
                         {"title": "PROCESSING COMPLETED", "content": file}
@@ -231,7 +236,7 @@ class WatcherThread(Thread):
                     socket_emitter.emit_status_update(
                         {"title": "PROCESSING ERROR", "content": file}
                     )
-                    print(f"ERROR: {id} not processed", e)
+                    print(f"ERROR: {file} not processed: ", e)
                 finally:
                     socket_emitter.emit_invoices_update()
 
@@ -278,12 +283,12 @@ def handle_update_invoice_details(data):
 def test_connect():
     print(f"Client id:{request.sid} connected")
     run_watcher()
-    
 
 
 @socketio.on("disconnect")
 def test_disconnect():
     print("Client disconnected")
+
 
 def run_watcher():
     global thread
@@ -292,7 +297,7 @@ def run_watcher():
         thread = WatcherThread()
         thread.start()
 
+
 if __name__ == "__main__":
     socketio.run(app)
-
 
