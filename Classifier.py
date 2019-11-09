@@ -406,7 +406,7 @@ class RulesBasedClassifier:
             if field == "Country of consumption":
                 predictions["Country of consumption"] = [
                     cls.get_country(invoice),
-                    "Rules based",
+                    "Decision tree",
                 ]
 
             elif field == "Currency of invoice":
@@ -417,45 +417,45 @@ class RulesBasedClassifier:
                 ]:
                     predictions["Currency of invoice"] = [
                         cls.get_currency(predictions),
-                        "Rules based",
+                        "Decision tree",
                     ]
                 else:
                     predictions["Country of consumption"] = [
                         cls.get_country(invoice),
-                        "Rules based",
+                        "Decision tree",
                     ]
                     predictions["Currency of invoice"] = [
                         cls.get_currency(predictions),
-                        "Rules based",
+                        "Decision tree",
                     ]
             elif field == "Consumption period":
                 replacement = cls.get_consumption_period(invoice)
                 if replacement:
-                    predictions["Consumption period"] = [replacement, "Rules based"]
+                    predictions["Consumption period"] = [replacement, "Decision tree"]
             elif field == "Account number":
                 replacement = cls.get_account_number(invoice)
                 if replacement:
-                    predictions["Account number"] = [replacement, "Rules based"]
+                    predictions["Account number"] = [replacement, "Decision tree"]
             elif field == "Invoice number":
                 replacement = cls.get_invoice_number(invoice)
                 if replacement:
-                    predictions["Invoice number"] = [replacement, "Rules based"]
+                    predictions["Invoice number"] = [replacement, "Decision tree"]
             elif field == "Date of invoice":
                 replacement = cls.get_invoice_date(invoice)
                 if replacement:
-                    predictions["Date of invoice"] = [replacement, "Rules based"]
+                    predictions["Date of invoice"] = [replacement, "Decision tree"]
             elif field == "Name of provider":
                 replacement = cls.get_company(invoice)
                 if replacement:
-                    predictions["Name of provider"] = [replacement, "Rules based"]
+                    predictions["Name of provider"] = [replacement, "Decision tree"]
             elif field == "Tax":
                 replacement = cls.get_tax(invoice)
                 if replacement:
-                    predictions["Tax"] = [replacement, "Rules based"]
+                    predictions["Tax"] = [replacement, "Decision tree"]
             elif field == "Total amount":
                 replacement = cls.get_total_amount(invoice)
                 if replacement:
-                    predictions["Total amount"] = [replacement, "Rules based"]
+                    predictions["Total amount"] = [replacement, "Decision tree"]
 
         return predictions
 
