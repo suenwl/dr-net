@@ -20,6 +20,7 @@ import enum
 
 import time
 import json
+import csv
 
 app = Flask(__name__, static_folder="build/static", template_folder="build")
 app.config["SECRET_KEY"] = "mysecret"
@@ -118,10 +119,34 @@ class InvoiceDataBase:
             is not None
         )
 
+    def update_csv(self):
+        data = self.get_all_invoices_w_data()
+        fields = [
+            "id",
+            "name_of_provider",
+            "po_number",
+            "tax",
+            "account_number",
+            "total_amount",
+            "consumption_period",
+            "country_of_consumption",
+            "currency_of_invoice",
+            "date_of_invoice",
+            "invoice_number",
+        ]
+        data_to_write = [
+            {k: v for k, v in invoice.items() if k in fields} for invoice in data
+        ]
+        with open("invoice_db.csv", "w") as output_file:
+            dict_writer = csv.DictWriter(output_file, fields)
+            dict_writer.writeheader()
+            dict_writer.writerows(data_to_write)
+
     def insert_invoice(self, data):
         i = self.model(**data)
         self.db.session.add(i)
         self.db.session.commit()
+        self.update_csv()
 
     def update_invoice(self, id, data):
         for field in data:
@@ -135,6 +160,7 @@ class InvoiceDataBase:
     def update_status(self, id, new_status):
         self.model.query.get(id).status = new_status
         self.db.session.commit()
+        self.update_csv()
 
     def update_results(self, id, predictions):
         for key in predictions:
@@ -151,6 +177,7 @@ class InvoiceDataBase:
                 setattr(inv, formatted_key, "No Prediction")
                 setattr(inv, formatted_key + "_conf", 0.0)
             self.update_status(id, "processed")
+        self.update_csv()
 
 
 invoice_database = InvoiceDataBase(db)

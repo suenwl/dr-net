@@ -320,14 +320,14 @@ class Classifier:
 
     @classmethod
     def finalise_output(cls, predicted_categories, invoice):
-        output = cls.clean_output(
-            predicted_categories
-        )  # clean output first so that the rules based classifier has clean data to work with
+        # clean output first so that the rules based classifier has clean data to work with
+        output = cls.clean_output(predicted_categories)  
         output = RulesBasedClassifier.pad_missing_predictions(output, invoice)
-        output = cls.clean_output(
-            predicted_categories
-        )  # clean output one more time since we added new tokens
+        
+        # clean output one more time since we added new tokens
+        output = cls.clean_output(predicted_categories)  
 
+        
         return output
 
     def sort_invoices_by_predictive_accuracy(self, invoices, model_name: str):
@@ -381,7 +381,7 @@ class Classifier:
                 prediction[field] = prediction[field][0]
             prediction["Invoice"] = invoice_names[index]
 
-        with open("invoice_predictions.csv", "w") as output_file:
+        with open("training_invoice_predictions.csv", "w") as output_file:
             dict_writer = csv.DictWriter(output_file, keys)
             dict_writer.writeheader()
             dict_writer.writerows(predictions)
