@@ -50,9 +50,7 @@ for invoice in invoices_perf[:20]:
     )
 
 #%%
-# Write predictions to csv
-print()
-print("Writing predictions to csv for all invoices")
+# Calculate missing field percentages
 classifier = Classifier()
 classifier.load()
 predictions_before_cleaning = []
@@ -68,6 +66,7 @@ print(
     "Missing fields percentages after padding", missing_fields_percentage(predictions)
 )
 
+# Write output to csv
 classifier.write_predictions_to_csv(predictions, invoice_names)
 
 
