@@ -3,24 +3,47 @@ clean_database: True
 
 categories:
   Telco:
-    - LIBERTY WIRELESS PTE LTD
-    - Singapore Telecommunications Limited
+    - M1
+    - CSL Mobile Limited
+    - NTT
+    - Singtel
     - StarHub Ltd
-    - Zero! Pte Ltd
-  
-  Infrastructure:
-    - HipVan Pte. Ltd.
-    - IKANO Pte Ltd
-    - KAWAJUN Singapore Pte Ltd
-    - Castlery Pte Ltd
 
-  Operations:
-    - Google Asia Pacific Pte. Ltd.
-    - Singapore Chinese Chamber Institute of Business
-  
+  Consultants:
+    - BCG Pte Ltd
+    - Mckinsey & Company
+
   Services:
-    - MSIG Insurance (Singapore) Pte. Ltd.
-    - CONJUNCT CONSULTING (SINGAPORE) LIMITED
-    - Rentokil Initial Singapore Pte Ltd
+    - Canon Singapore Pte Ltd
+    - Oracle Corporation
+
+  Hardware:
+    - Dell Singapore Pte Ltd
+    - NCS Pte Ltd
+
+
+# categories:
+#   Telco:
+#     - LIBERTY WIRELESS PTE LTD
+#     - Singapore Telecommunications Limited
+#     - StarHub Ltd
+#     - Zero! Pte Ltd
+  
+#   Consultants:
+#     - HipVan Pte. Ltd.
+#     - IKANO Pte Ltd
+  
+#   Hardware:
+#     - KAWAJUN Singapore Pte Ltd
+#     - Castlery Pte Ltd
+
+#   Software:
+#     - Google Asia Pacific Pte. Ltd.
+#     - Singapore Chinese Chamber Institute of Business
+  
+#   Services:
+#     - MSIG Insurance (Singapore) Pte. Ltd.
+#     - CONJUNCT CONSULTING (SINGAPORE) LIMITED
+#     - Rentokil Initial Singapore Pte Ltd
 
   

@@ -23,6 +23,9 @@ import json
 import csv
 import yaml
 
+import mock_data
+
+
 app = Flask(__name__, static_folder="build/static", template_folder="build")
 app.config["SECRET_KEY"] = "mysecret"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///invoices.db"
@@ -208,6 +211,7 @@ class WatcherThread(Thread):
     def __init__(self):
         self.delay = 1
         self.process_queue = []
+        self.mock_queue = []
         self.invoice_db = invoice_database
         self.classifier = classifier
         super(WatcherThread, self).__init__()
@@ -286,6 +290,16 @@ class WatcherThread(Thread):
             self.process_queue = []
 
     def run(self):
+
+        # start inserting mock data ===============================
+        for df in mock_data.dataFile:
+            inv_id = str(random()) + ".pdf"
+            inv_id = inv_id.replace("0.", "invoice_id_")
+            self.invoice_db.insert_invoice({"id": inv_id})
+            self.invoice_db.update_results(inv_id, df)
+            socket_emitter.emit_invoices_update()
+        # end inserting mock data ===============================
+
         while not thread_stop_event.isSet():
             self.get_new_files()
             self.process_new_files()
