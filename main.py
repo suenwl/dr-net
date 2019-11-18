@@ -8,15 +8,17 @@ from Classifier import Classifier
 from config import features_to_use
 from random import random
 from os import listdir
+import os
 
 from flask import Flask
 from flask import render_template
-from flask import request
+from flask import request, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO
 from threading import Thread, Event
 from time import sleep
 import enum
+from werkzeug.utils import secure_filename
 
 import time
 import json
@@ -291,14 +293,14 @@ class WatcherThread(Thread):
 
     def run(self):
 
-        # start inserting mock data ===============================
-        for df in mock_data.dataFile:
-            inv_id = str(random()) + ".pdf"
-            inv_id = inv_id.replace("0.", "invoice_id_")
-            self.invoice_db.insert_invoice({"id": inv_id})
-            self.invoice_db.update_results(inv_id, df)
-            socket_emitter.emit_invoices_update()
-        # end inserting mock data ===============================
+        # # start inserting mock data ===============================
+        # for df in mock_data.dataFile:
+        #     inv_id = str(random()) + ".pdf"
+        #     inv_id = inv_id.replace("0.", "invoice_id_")
+        #     self.invoice_db.insert_invoice({"id": inv_id})
+        #     self.invoice_db.update_results(inv_id, df)
+        #     socket_emitter.emit_invoices_update()
+        # # end inserting mock data ===============================
 
         while not thread_stop_event.isSet():
             self.get_new_files()
@@ -344,6 +346,24 @@ def test_connect():
 @socketio.on("disconnect")
 def test_disconnect():
     print("Client disconnected")
+
+UPLOAD_FOLDER = invoice_dir
+ALLOWED_EXTENSIONS = set(['pdf', 'png', 'jpg', 'jpeg'])
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+@app.route('/upload', methods=['POST'])
+def fileUpload():
+    print('sdfsdfd')
+    target=UPLOAD_FOLDER
+    if not os.path.isdir(target):
+        os.mkdir(target)
+    file = request.files['file'] 
+    filename = secure_filename(file.filename)
+    destination="/".join([target, filename])
+    file.save(destination)
+    session['uploadFilePath']=destination
+    response="File Uploaded"
+    return response
 
 
 def run_watcher():
