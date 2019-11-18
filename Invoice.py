@@ -114,7 +114,7 @@ class InvoicePage:
             self.processed_page = None
             self.size = None
         self.tokens = None
-        self.grouped_tokens = None
+        self.grouped_tokens = []
         self.regions = None
         self.tokens_by_block_and_line = None
 
