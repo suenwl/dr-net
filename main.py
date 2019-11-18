@@ -347,23 +347,26 @@ def test_connect():
 def test_disconnect():
     print("Client disconnected")
 
-UPLOAD_FOLDER = invoice_dir
-ALLOWED_EXTENSIONS = set(['pdf', 'png', 'jpg', 'jpeg'])
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-@app.route('/upload', methods=['POST'])
+UPLOAD_FOLDER = invoice_dir
+ALLOWED_EXTENSIONS = set(["pdf", "png", "jpg", "jpeg"])
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+
+@app.route("/upload", methods=["POST"])
 def fileUpload():
-    print('sdfsdfd')
-    target=UPLOAD_FOLDER
+    print("sdfsdfd")
+    target = UPLOAD_FOLDER
     if not os.path.isdir(target):
         os.mkdir(target)
-    file = request.files['file'] 
+    file = request.files["file"]
     filename = secure_filename(file.filename)
-    destination="/".join([target, filename])
+    destination = "/".join([target, filename])
     file.save(destination)
-    session['uploadFilePath']=destination
-    response="File Uploaded"
-    return response
+    session["uploadFilePath"] = destination
+    socket_emitter.emit_status_update(
+        {"title": "FILE UPLOADING", "content": f"{filename} is now uploading"}
+    )
 
 
 def run_watcher():
