@@ -7,6 +7,7 @@ from typing import Dict
 from math import sqrt
 import re
 import datetime
+import string
 
 
 class Token:
@@ -230,6 +231,23 @@ class Token:
                                         year = int(datelist[2])+2000 #adjust year for 2 digit representation
                                     try: 
                                         date = datetime.datetime.strptime(str(day)+str(mth)+str(year), "%d%m%Y").date()
+                                        return [str(date)]
+                                    except:
+                                        pass
+                                else:  # Try for cases like ["September", "30", "2019"]
+                                    try:
+                                        hypothetical_date = text_list[index + 1].translate(
+                                            str.maketrans("", "", string.punctuation)
+                                        )
+                                        hypothetical_year = text_list[index + 2].translate(
+                                            str.maketrans("", "", string.punctuation)
+                                        )
+                                        date = datetime.datetime.strptime(
+                                            str(hypothetical_date)
+                                            + str(mth)
+                                            + str(hypothetical_year),
+                                            "%d%m%Y",
+                                        ).date()
                                         return [str(date)]
                                     except:
                                         pass
