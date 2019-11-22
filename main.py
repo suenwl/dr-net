@@ -37,7 +37,7 @@ db = SQLAlchemy(app)
 with open(r"config.yaml") as file:
     config = yaml.load(file, Loader=yaml.FullLoader)
 
-invoice_dir = config["invoice_dir"]
+invoice_dir = "CHANGE TO CORRECT DIRECTORY"
 invoice_categories = config["categories"]
 clean_database = config["clean_database"]
 

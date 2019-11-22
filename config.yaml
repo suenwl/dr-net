@@ -1,4 +1,3 @@
-invoice_dir: C:/Users/theia/Documents/Data/Year 4 Sem 1/BT3101 BUSINESS ANALYTICS CAPSTONE/Invoices
 clean_database: True
 
 categories:
@@ -20,4 +19,3 @@ categories:
   Hardware:
     - Dell Singapore Pte Ltd
     - NCS Pte Ltd
-
